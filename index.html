@@ -64,16 +64,20 @@ header.top p{margin:2px 0 0;color:var(--muted);font-size:13px}
 
 #side{width:var(--sidew,360px);flex:none;min-width:0;overflow-y:auto;overflow-x:hidden;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
 body.sidehid #side,body.sidehid #splitter{display:none}
+body.rail #side{width:52px;overflow-x:hidden}
+body.rail #splitter{display:none}
+body.rail #side details.sec>summary{justify-content:center;padding:13px 0}
+body.rail #side{border-right:1px solid var(--line)}
 #splitter{width:7px;flex:none;cursor:col-resize;background:transparent;border-right:1px solid var(--line);margin-left:-1px;position:relative;touch-action:none}
 #splitter:hover,#splitter.drag{background:rgba(11,110,117,.18)}
 #splitter::after{content:"";position:absolute;left:2px;top:50%;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--line)}
 body.resizing{cursor:col-resize;user-select:none}
 body.resizing #score{pointer-events:none}
 #side details.sec{border-bottom:1px solid var(--line)}
-#side details.sec>summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:flex;align-items:center;gap:8px;user-select:none}
+#side details.sec>summary{cursor:pointer;list-style:none;padding:11px 14px;color:var(--muted);display:flex;align-items:center;gap:8px;user-select:none}
 #side details.sec>summary::-webkit-details-marker{display:none}
-#side details.sec>summary::before{content:"▸";font-size:11px;transition:transform .12s}
-#side details.sec[open]>summary::before{transform:rotate(90deg)}
+#side details.sec[open]>summary{color:var(--accent)}
+#side details.sec>summary svg{flex:none;width:27px;height:27px}
 #side details.sec>summary:hover{color:var(--accent)}
 #side .secbody{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px}
 #side .row{flex-direction:column;align-items:stretch;gap:12px}
@@ -203,7 +207,7 @@ body.editing #score{cursor:crosshair}
   </section>
 
 
-  <details class="sec" id="secTempo" open><summary>Tempo e metronomo</summary><div class="secbody"><div class="row">
+  <details class="sec" id="secTempo" open><summary title="Tempo e metronomo" aria-label="Tempo e metronomo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21 10 3h4l2 18z"/><path d="M6 21h12"/><path d="M12 17 16.5 6.5"/><rect x="14" y="8.5" width="3.4" height="2.6" rx=".6" transform="rotate(-22 15.7 9.8)" fill="currentColor"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="bpm">Tempo ♩ =</label>
         <input id="bpm" class="mono" type="number" min="30" max="240" step="1" value="88">
@@ -225,7 +229,7 @@ body.editing #score{cursor:crosshair}
         <span class="accrow" id="accRow" role="group" aria-label="Accenti dei beat della battuta"></span>
       </div>
     </div></div></details>
-  <details class="sec" id="secEs" open><summary>Esercizio</summary><div class="secbody"><div class="row">
+  <details class="sec" id="secEs" open><summary title="Esercizio" aria-label="Esercizio"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5 21 6.5 17 10.5"/><path d="M3 11V10a3.5 3.5 0 0 1 3.5-3.5H21"/><path d="M7 21.5 3 17.5 7 13.5"/><path d="M21 13v1a3.5 3.5 0 0 1-3.5 3.5H3"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
@@ -236,7 +240,7 @@ body.editing #score{cursor:crosshair}
     </div>
     <p class="hint">Tocca una nota per partire da lì, o uno spazio vuoto della battuta per partire dall'inizio della battuta.</p>
   </div></details>
-  <details class="sec" id="secTras" open><summary>Strumento e trasposizione</summary><div class="secbody"><div class="row">
+  <details class="sec" id="secTras" open><summary title="Strumento e trasposizione" aria-label="Strumento e trasposizione"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5 9 5.5V17a4 4 0 0 0 8 0v-4"/><path d="M14.5 12.5h5.5"/><circle cx="9" cy="8.5" r=".9" fill="currentColor"/><circle cx="9" cy="11.5" r=".9" fill="currentColor"/><circle cx="9" cy="14.5" r=".9" fill="currentColor"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="srcInstr">Spartito scritto per</label>
         <select id="srcInstr"></select>
@@ -255,7 +259,7 @@ body.editing #score{cursor:crosshair}
       </div>
     </div>
     <p id="transInfo"></p></div></details>
-  <details class="sec" id="secVista"><summary>Vista</summary><div class="secbody"><div class="row">
+  <details class="sec" id="secVista"><summary title="Vista" aria-label="Vista"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6.5" cy="14.5" r="3.8"/><circle cx="17.5" cy="14.5" r="3.8"/><path d="M10.3 14h3.4"/><path d="M2.7 14.5 4.5 7"/><path d="M21.3 14.5 19.5 7"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="view">Vista</label>
         <select id="view">
@@ -1038,8 +1042,10 @@ function bindLayout(){
   window.addEventListener('resize',()=>{ const w=side.getBoundingClientRect().width; if(w>maxW()) setW(maxW()); });
   document.querySelectorAll('#side details.sec').forEach(d=>{
     const v=ls('lettore.sec.'+d.id); if(v==='0') d.open=false; else if(v==='1') d.open=true;
-    d.addEventListener('toggle',()=>ls('lettore.sec.'+d.id,d.open?'1':'0'));
+    d.addEventListener('toggle',()=>{ ls('lettore.sec.'+d.id,d.open?'1':'0'); updRail(); });
   });
+  window.updRail=()=>{ const closed=![...document.querySelectorAll('#side details.sec')].some(d=>d.open)&&$('editPanel').hidden; document.body.classList.toggle('rail',closed); };
+  updRail();
   const zoomBy=dz=>{ const z=$('zoom'); const v=Math.max(+z.min,Math.min(+z.max,(+z.value)+dz)); z.value=v; z.dispatchEvent(new Event('input')); ls('lettore.zoom',String(v)); };
   $('zOut').addEventListener('click',e=>{ e.currentTarget.blur(); zoomBy(-10); });
   $('zIn').addEventListener('click',e=>{ e.currentTarget.blur(); zoomBy(10); });
@@ -1275,7 +1281,7 @@ function edCheck(){
   return bad;
 }
 function edUpdateUi(){
-  const panel=$('editPanel'); panel.hidden=!ED.on;
+  const panel=$('editPanel'); panel.hidden=!ED.on; if(window.updRail) updRail();
   $('editBtn').setAttribute('aria-pressed',String(ED.on));
   if(!ED.on) return;
   const ms=edMeasures(), sel=ED.map[S.stepIdx];
@@ -1317,7 +1323,7 @@ async function edExit(){
   edLeave(); const keep=S.pos;
   parseSource(S.origText); fillSelects(); S.pos=keep; await rebuild(); fillPieces();
 }
-function edLeave(){ ED.on=false; ED.viewOrig=false; edLock(false); document.body.classList.remove('editing'); $('editPanel').hidden=true; $('editBtn').setAttribute('aria-pressed','false'); }
+function edLeave(){ ED.on=false; ED.viewOrig=false; edLock(false); document.body.classList.remove('editing'); $('editPanel').hidden=true; if(window.updRail) updRail(); $('editBtn').setAttribute('aria-pressed','false'); }
 async function edToggleOriginal(forceOff){
   if(!ED.on||S.rebuilding) return;
   if(ED.viewOrig||forceOff){ if(!ED.viewOrig) return; S.srcDoc=ED.workDoc; ED.workDoc=null; ED.viewOrig=false; }
