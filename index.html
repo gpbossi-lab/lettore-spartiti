@@ -193,6 +193,9 @@ body.editing #score{cursor:crosshair}
         <button class="btn sm t" data-op="d1" title="Semibreve (1)">1</button><button class="btn sm t" data-op="d2" title="Minima (2)">1/2</button><button class="btn sm t" data-op="d4" title="Semiminima (3)">1/4</button><button class="btn sm t" data-op="d8" title="Croma (4)">1/8</button><button class="btn sm t" data-op="d16" title="Semicroma (5)">1/16</button><button class="btn sm t" data-op="dot" title="Punto (.)">•</button></div>
       <div class="group"><span class="cap">Nota</span>
         <button class="btn" data-op="rest" title="Nota ⇄ pausa (R)">Pausa ⇄ nota</button><button class="btn" data-op="ins" title="Duplica la nota dopo di sé (I o Invio)">Inserisci dopo</button><button class="btn" data-op="del" title="Toglie la nota dalla battuta (Canc)">Elimina</button></div>
+      <div class="group"><span class="cap">Segni</span>
+        <button class="btn sm t" data-op="stacc" title="Staccato (S)">•</button><button class="btn sm t" data-op="acc" title="Accento (A)">&gt;</button><button class="btn sm t" data-op="ten" title="Tenuto (T)">–</button><button class="btn sm t" data-op="marc" title="Marcato (M)">^</button><button class="btn sm t" data-op="ferm" title="Corona (F)">𝄐</button>
+        <button class="btn sm" data-op="slur" title="Lega questa nota alla successiva, o allunga la legatura (L)">⌒ Lega</button><button class="btn sm" data-op="unslur" title="Toglie la legatura che comprende questa nota (Maiusc+L)">Sciogli</button></div>
       <div class="group"><button class="btn" id="edUndo" data-op="undo" title="Annulla (Ctrl+Z)">↶ Annulla</button><button class="btn" id="edRedo" data-op="redo" title="Ripeti (Ctrl+Y)">↷ Ripeti</button></div>
     </div>
     <div class="row">
@@ -203,7 +206,7 @@ body.editing #score{cursor:crosshair}
       <button class="btn" id="edExit" type="button">Esci dalla modifica</button>
     </div>
     <p id="edCheck" class="hint"></p>
-    <p class="hint">Tasti: ←/→ nota precedente/successiva (con Maiusc: battuta) · ↑/↓ altezza · +, −, N alterazione · 1–5 durata, . punto · R pausa · Canc elimina · I inserisci dopo · Ctrl+Z annulla.</p>
+    <p class="hint">Tasti: ←/→ nota precedente/successiva (con Maiusc: battuta) · ↑/↓ altezza · +, −, N alterazione · 1–5 durata, . punto · R pausa · Canc elimina · I inserisci dopo · S staccato, A accento, T tenuto, M marcato, F corona, L lega alla successiva (Maiusc+L scioglie) · Ctrl+Z annulla.</p>
   </section>
 
 
@@ -235,6 +238,7 @@ body.editing #score{cursor:crosshair}
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
       
         <button class="switch" id="swingBtn" type="button" aria-pressed="false" title="Esegue le crome in levare con il «ritardo» tipico dello swing"><span class="dot"></span>Swing</button>
+        <button class="switch" id="articBtn" type="button" aria-pressed="true" title="Staccato accorcia la nota, accento e marcato la rendono più forte, legatura la collega alla successiva"><span class="dot"></span>Articolazioni</button>
         <select id="swingR" aria-label="Intensità dello swing" title="Rapporto tra la prima e la seconda croma"><option value="1.5">leggero 3:2</option><option value="2" selected>medio 2:1</option><option value="2.5">marcato 5:2</option></select>
       </div>
     </div>
@@ -353,7 +357,7 @@ const S = {
   steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
   pos:0, stepIdx:0, playing:false, anchor:{t0:0,pos0:0},
   subdiv:1, acc:[1], accMeter:null, evPtr:0, clPtr:0, voices:[], metro:false, vol:.8, metroVol:.6,
-  hlStep:-1, rebuilding:false
+  hlStep:-1, rebuilding:false, artic:true
 };
 let osmd=null, ctx=null, master=null, timer=null, raf=null;
 const LOOKAHEAD=0.14;
@@ -579,6 +583,14 @@ function buildTimeline(){
         const ev=evByNote.get(tie.StartNote); ev.len+=len; evByNote.set(n,ev); continue;
       }
       const ev={pos:ts, len, written:n.Pitch.getHalfTone()+12};
+      { let rel=null, amp=1; const ve=n.ParentVoiceEntry;
+        for(const a of (ve&&ve.Articulations)||[]){
+          const k=a.articulationEnum;
+          if(k===6) rel=.5; else if(k===7||k===8) rel=.7; else if(k===9&&rel===null) rel=.02;
+          else if(k===0) amp=Math.max(amp,1.3); else if(k===1||k===3||k===4) { amp=Math.max(amp,1.5); }
+        }
+        if(rel===null && (n.slurs||[]).some(s=>s.endNote!==n)) rel=0;
+        if(rel!==null) ev.rel=rel; if(amp!==1) ev.amp=amp; }
       events.push(ev); evByNote.set(n,ev);
     }
     c.next();
@@ -789,7 +801,7 @@ function startVoice(ev, when){
   const midi=ev.written+transposeSounding();
   const f=440*Math.pow(2,(midi-69)/12);
   const out=ctx.createGain(); out.gain.setValueAtTime(0,when);
-  out.gain.linearRampToValueAtTime(.38*S.vol,when+.035);
+  out.gain.linearRampToValueAtTime(.38*S.vol*(S.artic?(ev.amp||1):1),when+.035);
   const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(f*5,4200); lp.Q.value=1.2;
   const o1=ctx.createOscillator(); o1.type='sawtooth'; o1.frequency.value=f;
   const o2=ctx.createOscillator(); o2.type='triangle'; o2.frequency.value=f; o2.detune.value=5;
@@ -878,7 +890,7 @@ function schedule(){
       continue;
     }
     for(const v of S.voices){ if(v.released) continue;
-      const we=wp(v.ev.pos+v.ev.len), ws=wp(v.ev.pos), tEnd=S.anchor.t0+(we-.06*(we-ws)-w0)*spw;
+      const we=wp(v.ev.pos+v.ev.len), ws=wp(v.ev.pos), tEnd=S.anchor.t0+(we-(S.artic&&v.ev.rel!==undefined?v.ev.rel:.06)*(we-ws)-w0)*spw;
       if(tEnd<=now+LOOKAHEAD) releaseVoice(v,Math.max(now,tEnd)); }
     break;
   }
@@ -996,6 +1008,8 @@ function bind(){
   $('seek').addEventListener('input',e=>seekTo(S.steps[parseInt(e.target.value,10)].ts));
   $('bpm').addEventListener('change',e=>setBpm(parseFloat(e.target.value)));
   $('bpmRange').addEventListener('input',e=>setBpm(parseFloat(e.target.value)));
+  $('articBtn').addEventListener('click',e=>{ S.artic=!S.artic; e.currentTarget.setAttribute('aria-pressed',String(S.artic)); e.currentTarget.blur(); try{localStorage.setItem('lettore.artic',S.artic?'1':'0');}catch(_){} });
+  try{ if(localStorage.getItem('lettore.artic')==='0'){ S.artic=false; $('articBtn').setAttribute('aria-pressed','false'); } }catch(_){}
   $('bpmReset').addEventListener('click',()=>{ S.bpmTouched=false; setBpm(S.origBpm); S.bpmTouched=false; });
   $('metro').addEventListener('click',()=>{ S.metro=!S.metro; $('metro').setAttribute('aria-pressed',String(S.metro)); });
   $('subdiv').addEventListener('change',e=>{ S.subdiv=parseInt(e.target.value); onClickOptsChanged(); });
@@ -1239,11 +1253,88 @@ function opInsert(sel){
   ED.pendingSel={m:sel.m,k:sel.k+1};
 }
 
+/* Segni: articolazioni e legature di portamento */
+function notationsOf(n,create){
+  let nt=q1(n,'notations'); if(!nt&&create){ nt=mk('notations'); n.appendChild(nt); } return nt;
+}
+function artsOf(n,create){
+  const nt=notationsOf(n,create); if(!nt) return null;
+  let a=q1(nt,'articulations'); if(!a&&create){ a=mk('articulations'); nt.appendChild(a); } return a;
+}
+function opArt(sel,tag,exclusive){
+  const first=sel.notes.filter(n=>!q1(n,'rest'));
+  if(!first.length) return 'Seleziona una nota (non una pausa).';
+  const on=!first.every(n=>{ const a=artsOf(n,false); return a&&q1(a,tag); });
+  for(const n of first){
+    const a=artsOf(n,true);
+    (exclusive||[]).forEach(t=>qa(a,t).forEach(e=>e.remove()));
+    qa(a,tag).forEach(e=>e.remove());
+    if(on) a.appendChild(mk(tag));
+    if(!a.children.length) a.remove();
+    const nt=notationsOf(n,false); if(nt&&!nt.children.length) nt.remove();
+  }
+}
+function opFermata(sel){
+  const first=sel.notes[0]; const nt=notationsOf(first,true); const ex=q1(nt,'fermata');
+  if(ex) ex.remove(); else nt.appendChild(mk('fermata'));
+  if(!nt.children.length) nt.remove();
+}
+function slurEls(n){ return qa(n,'notations').flatMap(nt=>[...nt.children].filter(c=>c.tagName==='slur')); }
+function addSlur(n,type,num){
+  const nt=notationsOf(n,true); const s=mk('slur'); s.setAttribute('type',type); s.setAttribute('number',String(num||1));
+  const ref=[...nt.children].find(c=>c.tagName!=='tied'&&c.tagName!=='slur'); ref?nt.insertBefore(s,ref):nt.appendChild(s);
+}
+function dropEmptyNotations(n){ const nt=notationsOf(n,false); if(nt&&!nt.children.length) nt.remove(); }
+/* ripulisce legature rimaste senza inizio o senza fine (dopo cancellazioni o spostamenti) */
+function fixSlurs(doc){
+  const part=doc.querySelector('part'); if(!part) return;
+  const open={}; const bad=[];
+  part.querySelectorAll('note').forEach(n=>{
+    qa(n,'notations').forEach(nt=>[...nt.children].filter(c=>c.tagName==='slur').forEach(s=>{
+      const type=s.getAttribute('type'), num=s.getAttribute('number')||'1';
+      if(type==='start'){ if(open[num]) bad.push(open[num]); open[num]=s; }
+      else if(type==='stop'){ if(open[num]) delete open[num]; else bad.push(s); }
+    }));
+  });
+  Object.values(open).forEach(s=>bad.push(s));
+  bad.forEach(s=>{ const nt=s.parentNode; s.remove(); if(nt&&nt.tagName==='notations'&&!nt.children.length) nt.remove(); });
+}
+function opSlur(sel){
+  const n=sel.notes.find(x=>!q1(x,'rest'));
+  const nx=ED.map[S.stepIdx+1]; const nn=nx&&nx.notes.find(x=>!q1(x,'rest'));
+  if(!n) return 'Seleziona una nota (non una pausa).';
+  if(!nn) return 'La nota successiva manca o è una pausa: la legatura collega due note.';
+  const stops=slurEls(n).filter(s=>s.getAttribute('type')==='stop');
+  const starts=slurEls(n).filter(s=>s.getAttribute('type')==='start');
+  const nnStarts=slurEls(nn).filter(s=>s.getAttribute('type')==='start');
+  if(starts.length&&!stops.length) return 'Questa nota è già legata alla successiva.';
+  if(stops.length){
+    if(nnStarts.length){ stops[0].remove(); nnStarts[0].remove(); dropEmptyNotations(n); dropEmptyNotations(nn); }  /* unisce due legature */
+    else { const num=stops[0].getAttribute('number')||'1'; stops[0].remove(); dropEmptyNotations(n); addSlur(nn,'stop',num); }
+  } else {
+    if(nnStarts.length){ const num=nnStarts[0].getAttribute('number')||'1'; addSlur(n,'start',num); }  /* si allunga all'indietro */
+    else { addSlur(n,'start',1); addSlur(nn,'stop',1); }
+  }
+  ED.pendingSel={m:sel.m,k:sel.k};
+}
+function opUnslur(sel){
+  const all=[...edPart().querySelectorAll('note')]; const targets=new Set(sel.notes);
+  const spans=[]; const open={};
+  all.forEach((n,i)=>{ slurEls(n).forEach(s=>{ const type=s.getAttribute('type'), num=s.getAttribute('number')||'1';
+    if(type==='start') open[num]={a:i,sa:s}; else if(type==='stop'&&open[num]){ spans.push({a:open[num].a,b:i,sa:open[num].sa,sb:s}); delete open[num]; } }); });
+  const idx=all.findIndex(n=>targets.has(n));
+  const hit=spans.filter(sp=>sp.a<=idx&&idx<=sp.b);
+  if(!hit.length) return 'Su questa nota non c\'è nessuna legatura.';
+  hit.forEach(sp=>{ [sp.sa,sp.sb].forEach(s=>{ const nt=s.parentNode; s.remove(); if(nt&&!nt.children.length) nt.remove(); }); });
+}
+
 const OPS={
   up:s=>opPitch(s,1,false), down:s=>opPitch(s,-1,false), 'oct+':s=>opPitch(s,1,true), 'oct-':s=>opPitch(s,-1,true),
   sharp:s=>opAlter(s,1), flat:s=>opAlter(s,-1), nat:s=>opAlter(s,null),
   d1:s=>opDur(s,'whole',0), d2:s=>opDur(s,'half',0), d4:s=>opDur(s,'quarter',0), d8:s=>opDur(s,'eighth',0), d16:s=>opDur(s,'16th',0), dot:s=>opDur(s,null),
-  rest:opRest, del:opDelete, ins:opInsert
+  rest:opRest, del:opDelete, ins:opInsert,
+  stacc:s=>opArt(s,'staccato',['staccatissimo']), acc:s=>opArt(s,'accent',['strong-accent']), ten:s=>opArt(s,'tenuto'), marc:s=>opArt(s,'strong-accent',['accent']),
+  ferm:opFermata, slur:opSlur, unslur:opUnslur
 };
 async function edOp(name){
   if(!ED.on||S.rebuilding) return;
@@ -1254,7 +1345,8 @@ async function edOp(name){
   const sel=ED.map[S.stepIdx]; if(!sel){ say('Tocca prima una nota nello spartito.'); return; }
   const before=edSer(); ED.preview=null; ED.pendingSel={m:sel.m,k:sel.k};
   const r=OPS[name](sel);
-  if(typeof r==='string'){ S.srcDoc=edParse(before); ED.pendingSel=null; say(r,6000); return; }
+  if(typeof r==='string'){ S.srcDoc=edParse(before); buildEditMap(); ED.pendingSel=null; say(r,6000); return; }
+  fixSlurs(S.srcDoc);
   ED.undo.push(before); if(ED.undo.length>150) ED.undo.shift(); ED.redo=[];
   const pv=ED.preview;
   await edRefresh();
@@ -1407,6 +1499,12 @@ function edKey(e){
     case 'r': case 'R': return go('rest');
     case 'Delete': case 'Backspace': return go('del');
     case 'i': case 'I': case 'Enter': return go('ins');
+    case 's': case 'S': return go('stacc');
+    case 'a': case 'A': return go('acc');
+    case 't': case 'T': return go('ten');
+    case 'm': case 'M': return go('marc');
+    case 'f': case 'F': return go('ferm');
+    case 'l': return go('slur'); case 'L': return go('unslur');
   }
   return false;
 }
