@@ -1,0 +1,86 @@
+{
+ "id": "lacour1",
+ "title": "Lacour — 50 Études faciles et progressives, vol. 1",
+ "pieces": [
+  {
+   "n": 1,
+   "title": "Étude n. 1",
+   "label": "Étude 1 — Andantino ♩=72 · 4/4 · Do",
+   "file": "etude01.xml",
+   "tempo": 72,
+   "meter": "4/4"
+  },
+  {
+   "n": 2,
+   "title": "Étude n. 2",
+   "label": "Étude 2 — Moderato ♩=84 · 4/4 · Do",
+   "file": "etude02.xml",
+   "tempo": 84,
+   "meter": "4/4"
+  },
+  {
+   "n": 3,
+   "title": "Étude n. 3",
+   "label": "Étude 3 — Andantino ♩=76 · 4/4 · Do",
+   "file": "etude03.xml",
+   "tempo": 76,
+   "meter": "4/4"
+  },
+  {
+   "n": 4,
+   "title": "Étude n. 4",
+   "label": "Étude 4 — Moderato ♩=96 · 4/4 · Do",
+   "file": "etude04.xml",
+   "tempo": 96,
+   "meter": "4/4"
+  },
+  {
+   "n": 5,
+   "title": "Étude n. 5",
+   "label": "Étude 5 — Allegretto ♩=112 · 3/4 · Sol",
+   "file": "etude05.xml",
+   "tempo": 112,
+   "meter": "3/4"
+  },
+  {
+   "n": 6,
+   "title": "Étude n. 6",
+   "label": "Étude 6 — Moderato ♩=96 · 4/4 · Do",
+   "file": "etude06.xml",
+   "tempo": 96,
+   "meter": "4/4"
+  },
+  {
+   "n": 7,
+   "title": "Étude n. 7",
+   "label": "Étude 7 — Moderato ♩=88 · 4/4 · Sib",
+   "file": "etude07.xml",
+   "tempo": 88,
+   "meter": "4/4"
+  },
+  {
+   "n": 8,
+   "title": "Étude n. 8",
+   "label": "Étude 8 — Allegretto ♩=100 · 2/4 · Do",
+   "file": "etude08.xml",
+   "tempo": 100,
+   "meter": "2/4"
+  },
+  {
+   "n": 9,
+   "title": "Étude n. 9",
+   "label": "Étude 9 — Moderato ♩=88 · 4/4 · Fa",
+   "file": "etude09.xml",
+   "tempo": 88,
+   "meter": "4/4"
+  },
+  {
+   "n": 10,
+   "title": "Étude n. 10",
+   "label": "Étude 10 — Allegretto ♩=112 · 2/4 · Do",
+   "file": "etude10.xml",
+   "tempo": 112,
+   "meter": "2/4"
+  }
+ ]
+}

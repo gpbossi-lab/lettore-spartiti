@@ -1,0 +1,12 @@
+{
+ "books": [
+  {
+   "id": "lacour1",
+   "title": "Lacour — 50 Études faciles et progressives, vol. 1",
+   "path": "lacour1/",
+   "author": "Guy Lacour",
+   "instrument": "Sax tenore",
+   "pieces_available": 10
+  }
+ ]
+}

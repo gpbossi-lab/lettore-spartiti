@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lettore di spartiti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: schermata unica. Spartito grande al centro, pannello comandi in basso, strumenti e vista su una riga a parte. */
+:root{
+  --bg:#eef1f4;
+  --panel:#ffffff;
+  --ink:#16212c;
+  --muted:#5a6775;
+  --line:#d5dbe2;
+  --accent:#0b6e75;
+  --accent-ink:#ffffff;
+  --hl:#e4571a;
+  --played:#7d93a8;
+  --paper:#ffffff;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161c; --panel:#18212a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2b3743;
+    --accent:#47b5bd; --accent-ink:#06282b; --hl:#ff8a4d; --played:#7d93a8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161c; --panel:#18212a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2b3743;
+  --accent:#47b5bd; --accent-ink:#06282b; --hl:#ff8a4d; --played:#7d93a8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4}
+#app{display:flex;flex-direction:column;height:100%}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top h1{margin:0;font-size:18px;font-weight:600;text-wrap:balance}
+header.top p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.picker{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.picker select{max-width:min(46vw,300px);padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font:inherit;font-size:14px}
+.btn.sm{padding:6px 11px;font-size:16px;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-weight:500;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+#scoreWrap{position:relative;flex:1;min-height:0;margin:12px 20px;border:1px solid var(--line);border-radius:10px;background:var(--paper);overflow:hidden}
+#score{height:100%;overflow:auto;position:relative;color:#111;padding:8px 0 12px}
+#status{position:absolute;left:12px;bottom:10px;max-width:calc(100% - 24px);padding:8px 12px;border-radius:8px;background:var(--ink);color:var(--panel);font-size:13px;display:none}
+#status.show{display:block}
+#dropHint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(11,110,117,.12);border:2px dashed var(--accent);border-radius:10px;font-weight:600;color:var(--accent);pointer-events:none}
+#scoreWrap.drag #dropHint{display:flex}
+
+#controls{background:var(--panel);border-top:1px solid var(--line);padding:12px 20px 14px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:16px 24px;flex-wrap:wrap;align-items:center}
+.group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.group > label.cap, .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.transport{display:flex;gap:6px;align-items:center}
+.ibtn{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;padding:0}
+.ibtn svg{width:20px;height:20px;fill:currentColor}
+.ibtn:hover{border-color:var(--accent)}
+.ibtn.play{width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ibtn.play svg{width:26px;height:26px}
+.seekbox{display:flex;align-items:center;gap:12px;flex:1;min-width:220px}
+.seekbox input[type=range]{flex:1}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+#barLabel{min-width:118px;text-align:right;font-size:14px}
+input[type=range]{accent-color:var(--accent);min-width:110px}
+input[type=number]{width:72px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);max-width:260px}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-weight:500;font-size:14px}
+.switch .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.switch[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.switch[aria-pressed="true"] .dot{background:var(--hl)}
+.divider{height:1px;background:var(--line);margin:0}
+#transInfo{font-size:13px;color:var(--muted);margin:0;text-wrap:pretty}
+.pct{min-width:48px;font-size:13px;color:var(--muted)}
+#scoreWrap.due{display:flex;align-items:center}
+#scoreWrap.due #score{width:100%;height:auto;padding:0}
+.loopbox{position:absolute;background:rgba(228,87,26,.13);border-top:2px solid rgba(228,87,26,.55);border-bottom:2px solid rgba(228,87,26,.55);pointer-events:none;z-index:1}
+#score{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#score img{pointer-events:none}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+.switch.armed{border-color:var(--hl)}
+@media (max-width:760px){
+  html,body{height:auto}
+  #app{height:auto;min-height:100%}
+  header.top,#controls{padding-left:16px;padding-right:16px}
+  #scoreWrap{margin:10px 16px;flex:none;height:300px}
+  select{max-width:100%}
+}
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto !important} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div>
+      <h1 id="pieceTitle">Caricamento…</h1>
+      <p id="pieceMeta"> </p>
+    </div>
+    <div class="top-actions">
+      <div class="picker" id="picker">
+        <label class="cap" for="bookSel">Libro</label>
+        <select id="bookSel" aria-label="Libro"></select>
+        <label class="cap" for="pieceSel">Brano</label>
+        <button class="btn sm" id="pPrev" type="button" aria-label="Brano precedente" title="Brano precedente">‹</button>
+        <select id="pieceSel" aria-label="Brano"></select>
+        <button class="btn sm" id="pNext" type="button" aria-label="Brano successivo" title="Brano successivo">›</button>
+      </div>
+      <label class="btn" for="fileInput">Apri un altro spartito…</label>
+      <input id="fileInput" type="file" accept=".musicxml,.xml,.mxl" hidden>
+    </div>
+  </header>
+
+  <main id="scoreWrap">
+    <div id="score" aria-label="Spartito"></div>
+    <div id="dropHint">Trascina qui un file MusicXML</div>
+    <div id="status" role="status"></div>
+  </main>
+
+  <section id="controls" aria-label="Comandi">
+    <div class="row">
+      <div class="transport">
+        <button class="ibtn" id="btnStart" type="button" aria-label="Torna all'inizio" title="Torna all'inizio"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+        <button class="ibtn" id="btnBack" type="button" aria-label="Indietro veloce (tieni premuto)" title="Indietro veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M11 6v12l-9-6zM22 6v12l-9-6z"/></svg></button>
+        <button class="ibtn play" id="btnPlay" type="button" aria-label="Riproduci" title="Riproduci / Pausa (barra spaziatrice)"><svg id="icoPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg id="icoPause" viewBox="0 0 24 24" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+        <button class="ibtn" id="btnFwd" type="button" aria-label="Avanti veloce (tieni premuto)" title="Avanti veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M13 6v12l9-6zM2 6v12l9-6z"/></svg></button>
+      </div>
+      <div class="seekbox">
+        <input id="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Posizione nel brano">
+        <span id="barLabel" class="mono">Battuta 0</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="group">
+        <label class="cap" for="bpm">Tempo ♩ =</label>
+        <input id="bpm" class="mono" type="number" min="30" max="240" step="1" value="88">
+        <input id="bpmRange" type="range" min="30" max="240" step="1" value="88" aria-label="Tempo, battiti al minuto">
+        <span id="bpmPct" class="pct mono">100%</span>
+        <button class="btn" id="bpmReset" type="button">Originale</button>
+      </div>
+      <div class="group">
+        <button class="switch" id="metro" type="button" aria-pressed="false"><span class="dot"></span>Metronomo</button>
+        <label class="cap" for="metroVol">Click</label>
+        <input id="metroVol" type="range" min="0" max="100" value="60" style="min-width:80px">
+        <label class="cap" for="vol">Strumento</label>
+        <input id="vol" type="range" min="0" max="100" value="80" style="min-width:80px">
+      </div>
+      <div class="group">
+        <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
+        <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
+      </div>
+    </div>
+    <p class="hint">Tocca una nota per partire da lì, o uno spazio vuoto della battuta per partire dall'inizio della battuta.</p>
+
+    <div class="divider"></div>
+
+    <div class="row">
+      <div class="group">
+        <label class="cap" for="srcInstr">Spartito scritto per</label>
+        <select id="srcInstr"></select>
+      </div>
+      <div class="group">
+        <label class="cap" for="dstInstr">Io suono</label>
+        <select id="dstInstr"></select>
+      </div>
+      <div class="group">
+        <label class="cap" for="octave">Ottava</label>
+        <select id="octave">
+          <option value="-1">Una più grave</option>
+          <option value="0" selected>Come calcolata</option>
+          <option value="1">Una più acuta</option>
+        </select>
+      </div>
+      <div class="group">
+        <label class="cap" for="view">Vista</label>
+        <select id="view">
+          <option value="due" selected>Due righi</option>
+          <option value="riga">Rigo che scorre</option>
+          <option value="intero">Spartito intero</option>
+        </select>
+        <label class="cap" for="perLine" id="perLineLbl">Battute per rigo</label>
+        <select id="perLine">
+          <option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option>
+        </select>
+        <label class="cap" for="zoom">Zoom</label>
+        <input id="zoom" type="range" min="60" max="200" value="130" style="min-width:80px">
+      </div>
+    </div>
+    <p id="transInfo"></p>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.2.1/build/opensheetmusicdisplay.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ---------- Dati ---------- */
+const DEFAULT_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.1 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n<score-partwise version=\"3.1\"><work><work-title>Étude n. 9</work-title></work><movement-title>Étude n. 9 - Moderato (da 50 études faciles et progressives, vol. 1)</movement-title><identification><creator type=\"composer\">Guy Lacour</creator><encoding><encoder>GPBossi</encoder><software>trascrizione manuale con misura delle altezze</software></encoding><miscellaneous><miscellaneous-field name=\"author\">GPBossi</miscellaneous-field></miscellaneous></identification><part-list><score-part id=\"P1\"><part-name>Sax tenore (Si♭)</part-name><part-abbreviation>Sax t.</part-abbreviation><score-instrument id=\"P1-I1\"><instrument-name>Tenor Saxophone</instrument-name></score-instrument><midi-instrument id=\"P1-I1\"><midi-channel>1</midi-channel><midi-program>67</midi-program></midi-instrument></score-part></part-list><part id=\"P1\"><measure number=\"0\" implicit=\"yes\"><attributes><divisions>2</divisions><key><fifths>-1</fifths></key><time symbol=\"common\"><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef><transpose><diatonic>-1</diatonic><chromatic>-2</chromatic><octave-change>-1</octave-change></transpose></attributes><direction placement=\"above\"><direction-type><words font-weight=\"bold\">Moderato</words></direction-type><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>88</per-minute></metronome></direction-type><sound tempo=\"88\"/></direction><direction placement=\"below\"><direction-type><dynamics><p/></dynamics></direction-type></direction><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"1\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"2\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"3\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"4\"><note><pitch><step>G</step><octave>4</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"5\"><direction placement=\"below\"><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><alter>1</alter><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>sharp</accidental></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"6\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"7\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"8\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><tie type=\"start\"/><type>half</type><notations><tied type=\"start\"/></notations></note><direction placement=\"below\"><direction-type><dynamics><p/></dynamics></direction-type></direction><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><tie type=\"stop\"/><type>eighth</type><notations><tied type=\"stop\"/><articulations><breath-mark/></articulations></notations></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"9\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"10\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"11\"><note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><alter>1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note></measure><measure number=\"12\"><note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><tie type=\"start\"/><type>half</type><notations><tied type=\"start\"/></notations></note><direction placement=\"below\"><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><tie type=\"stop\"/><type>eighth</type><notations><tied type=\"stop\"/><articulations><breath-mark/></articulations></notations></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"13\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"14\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><direction placement=\"below\"><direction-type><dynamics><f/></dynamics></direction-type></direction><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>6</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"15\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><alter>1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note></measure><measure number=\"16\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><direction placement=\"below\"><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"17\"><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note><note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"18\"><note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"19\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"20\"><note><pitch><step>C</step><octave>5</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"21\"><note><pitch><step>A</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"22\"><direction placement=\"below\"><direction-type><dynamics><f/></dynamics></direction-type></direction><note><pitch><step>D</step><octave>6</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><octave>6</octave></pitch><duration>1</duration><type>eighth</type><accidental>natural</accidental></note><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"23\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"24\"><note><pitch><step>A</step><octave>5</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><note><pitch><step>C</step><octave>6</octave></pitch><duration>2</duration><type>quarter</type><notations><articulations><tenuto/></articulations></notations></note></measure><measure number=\"25\"><note><pitch><step>C</step><octave>6</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"26\"><note><pitch><step>A</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><direction placement=\"below\"><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"27\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><alter>1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>1</duration><type>eighth</type><accidental>sharp</accidental></note></measure><measure number=\"28\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><direction placement=\"below\"><direction-type><dynamics><p/></dynamics></direction-type></direction><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note></measure><measure number=\"29\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"30\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"31\"><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"32\"><note><pitch><step>G</step><octave>4</octave></pitch><duration>6</duration><type>half</type><dot/><notations><articulations><breath-mark/></articulations></notations></note><direction placement=\"below\"><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"33\"><note><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><alter>1</alter><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>sharp</accidental></note><note><pitch><step>G</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"34\"><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"35\"><note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note></measure><measure number=\"36\"><note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><tie type=\"start\"/><type>half</type><notations><tied type=\"start\"/></notations></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><tie type=\"stop\"/><type>eighth</type><notations><tied type=\"stop\"/><articulations><breath-mark/></articulations></notations></note><note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"37\"><note><pitch><step>G</step><alter>1</alter><octave>4</octave></pitch><duration>4</duration><type>half</type><accidental>sharp</accidental></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type><accidental>natural</accidental></note></measure><measure number=\"38\"><note><pitch><step>B</step><octave>4</octave></pitch><duration>4</duration><type>half</type><accidental>natural</accidental></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><notations><articulations><breath-mark/></articulations></notations></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"39\"><note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type><accidental>natural</accidental></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>D</step><octave>6</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>6</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"40\"><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><direction placement=\"above\"><direction-type><words font-style=\"italic\">rall.</words></direction-type></direction><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>F</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note></measure><measure number=\"41\"><direction placement=\"below\"><direction-type><dynamics><p/></dynamics></direction-type></direction><note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><type>half</type></note><note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><type>half</type></note></measure><measure number=\"42\"><note><pitch><step>F</step><octave>4</octave></pitch><duration>8</duration><type>whole</type><notations><fermata type=\"upright\"/></notations></note><barline location=\"right\"><bar-style>light-heavy</bar-style></barline></measure></part></score-partwise>";
+
+/* Trasposizione dal pentagramma al suono reale: d = gradi diatonici, c = semitoni (incluse le ottave).
+   Un clarinetto in Si♭ legge una nota e suona due semitoni sotto: d = -1, c = -2. */
+const INSTR = [
+  {id:'c',      g:'Strumenti in Do',  n:'In Do (suono reale)',                  d:0,  c:0,   re:/\b(piano|violin|oboe|flute|flauto|bassoon|fagotto|cello|trombone|trumpet in c)/i},
+  {id:'fl',     g:'Strumenti in Do',  n:'Flauto',                               d:0,  c:0},
+  {id:'ob',     g:'Strumenti in Do',  n:'Oboe',                                 d:0,  c:0},
+  {id:'fg',     g:'Strumenti in Do',  n:'Fagotto (chiave di violino)',          d:0,  c:0},
+  {id:'vn',     g:'Strumenti in Do',  n:'Violino',                              d:0,  c:0},
+  {id:'ott',    g:'Strumenti in Do',  n:'Ottavino',                             d:7,  c:12,  re:/piccolo|ottavino/i},
+  {id:'fl-g',   g:'Strumenti in Do',  n:'Flauto contralto in Sol',              d:-3, c:-5,  re:/alto flute/i},
+  {id:'cl-sib', g:'Clarinetti',       n:'Clarinetto in Si♭',                    d:-1, c:-2,  re:/clarinet/i},
+  {id:'cl-la',  g:'Clarinetti',       n:'Clarinetto in La',                     d:-2, c:-3},
+  {id:'cl-mib', g:'Clarinetti',       n:'Clarinetto piccolo in Mi♭',            d:2,  c:3},
+  {id:'cl-alt', g:'Clarinetti',       n:'Clarinetto contralto in Mi♭',          d:-5, c:-9},
+  {id:'cl-bas', g:'Clarinetti',       n:'Clarinetto basso in Si♭',              d:-8, c:-14, re:/bass clarinet/i},
+  {id:'sax-ss', g:'Sassofoni',        n:'Sax sopranino in Mi♭',                 d:2,  c:3},
+  {id:'sax-s',  g:'Sassofoni',        n:'Sax soprano in Si♭',                   d:-1, c:-2,  re:/soprano sax/i},
+  {id:'sax-a',  g:'Sassofoni',        n:'Sax contralto in Mi♭',                 d:-5, c:-9,  re:/alto sax/i},
+  {id:'sax-t',  g:'Sassofoni',        n:'Sax tenore in Si♭',                    d:-8, c:-14, re:/tenor sax|sax.*tenore|tenore/i},
+  {id:'sax-b',  g:'Sassofoni',        n:'Sax baritono in Mi♭',                  d:-12,c:-21, re:/baritone sax|sax.*bariton/i},
+  {id:'tr-sib', g:'Ottoni',           n:'Tromba, cornetta, flicorno in Si♭',    d:-1, c:-2,  re:/trumpet|tromba|cornet/i},
+  {id:'tr-do',  g:'Ottoni',           n:'Tromba in Do',                         d:0,  c:0},
+  {id:'cor-fa', g:'Ottoni',           n:'Corno in Fa',                          d:-4, c:-7,  re:/horn|corno/i},
+  {id:'ce-fa',  g:'Ottoni',           n:'Corno inglese in Fa',                  d:-4, c:-7,  re:/english horn|corno inglese/i},
+  {id:'tb-sib', g:'Ottoni',           n:'Trombone o eufonio in Si♭ (chiave di violino)', d:-8, c:-14},
+  {id:'gt',     g:'Altri',            n:'Chitarra',                             d:-7, c:-12, re:/guitar|chitarra/i}
+];
+const byId = id => INSTR.find(i => i.id === id);
+
+const STEPS='CDEFGAB', STEP_IDX={C:0,D:1,E:2,F:3,G:4,A:5,B:6}, STEP_SEMI=[0,2,4,5,7,9,11];
+const SHARPS=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
+const FLATS =[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]];
+const mod = (a,n) => ((a % n) + n) % n;
+
+/* ---------- Stato ---------- */
+const S = {
+  srcDoc:null, srcT:{d:0,c:0}, fileInstr:null,
+  srcId:'c', dstId:'c', octave:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
+  geo:[], rows:[], rowOf:[], rowFirstM:[], winRow:0, loop:null, loopMode:0, loopA:null, countIn:false, countUntil:0, loopEls:[],
+  bpm:100, origBpm:100,
+  steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
+  pos:0, stepIdx:0, playing:false, anchor:{t0:0,pos0:0},
+  evPtr:0, clPtr:0, voices:[], metro:false, vol:.8, metroVol:.6,
+  hlStep:-1, rebuilding:false
+};
+let osmd=null, ctx=null, master=null, timer=null, raf=null;
+const LOOKAHEAD=0.14;
+
+/* ---------- Messaggi ---------- */
+let statusTimer=null;
+function say(msg, ms=4500){
+  const el=$('status'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(statusTimer); if(ms) statusTimer=setTimeout(()=>el.classList.remove('show'),ms);
+}
+
+/* ---------- Trasposizione del MusicXML ---------- */
+function transposeFifths(f, dd, dc){
+  const tonicSemi=mod(7*f,12), tonicDiat=mod(4*f,7);
+  const nd=mod(tonicDiat+dd,7), nc=mod(tonicSemi+dc,12);
+  for(let k=0;k<=7;k++) for(const sg of [1,-1]){
+    const g=k*sg; if(mod(7*g,12)===nc && mod(4*g,7)===nd) return g;
+  }
+  for(let k=0;k<=7;k++) for(const sg of [1,-1]){ const g=k*sg; if(mod(7*g,12)===nc) return g; }
+  return f;
+}
+function transposeDoc(doc, dd, dc){
+  const keys=[...doc.querySelectorAll('key > fifths')];
+  const before=keys.length?parseInt(keys[0].textContent,10):0;
+  keys.forEach(el=>{ el.textContent=String(transposeFifths(parseInt(el.textContent,10),dd,dc)); });
+  const after=keys.length?parseInt(keys[0].textContent,10):0;
+  const table = after<0 ? FLATS : SHARPS;
+  doc.querySelectorAll('pitch').forEach(p=>{
+    const stepEl=p.querySelector('step'), octEl=p.querySelector('octave');
+    if(!stepEl||!octEl) return;
+    let alterEl=p.querySelector('alter');
+    const alter=alterEl?Math.round(parseFloat(alterEl.textContent)||0):0;
+    const oct=parseInt(octEl.textContent,10), idx=STEP_IDX[stepEl.textContent.trim()];
+    const midi=12*(oct+1)+STEP_SEMI[idx]+alter, nmidi=midi+dc;
+    const diat=oct*7+idx+dd, nidx=mod(diat,7);
+    let noct=Math.floor(diat/7), nstep=STEPS[nidx];
+    let nalter=nmidi-(12*(noct+1)+STEP_SEMI[nidx]);
+    if(Math.abs(nalter)>2){ const [s,a]=table[mod(nmidi,12)]; nstep=s; nalter=a; noct=Math.floor(nmidi/12)-1; }
+    stepEl.textContent=nstep; octEl.textContent=String(noct);
+    if(nalter!==0){
+      if(!alterEl){ alterEl=doc.createElement('alter'); stepEl.after(alterEl); }
+      alterEl.textContent=String(nalter);
+    } else if(alterEl){ alterEl.remove(); }
+  });
+  doc.querySelectorAll('transpose').forEach(e=>e.remove());
+  doc.querySelectorAll('note > accidental').forEach(e=>e.remove());
+  return {before, after};
+}
+const keyText = f => f>0 ? f+' diesis' : f<0 ? (-f)+(f===-1?' bemolle':' bemolli') : 'nessuna alterazione';
+
+/* ---------- Lettura del file ---------- */
+function readTransposeOf(doc){
+  const t=doc.querySelector('attributes > transpose, transpose');
+  if(!t) return {d:0,c:0,found:false};
+  const g=n=>{const e=t.querySelector(n); return e?parseInt(e.textContent,10)||0:0;};
+  const oc=g('octave-change');
+  return {d:g('diatonic')+7*oc, c:g('chromatic')+12*oc, found:true};
+}
+function parseSource(text){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.querySelector('parsererror')||!doc.querySelector('score-partwise, score-timewise')) throw new Error('Il file non è un MusicXML valido.');
+  if(doc.querySelector('score-timewise')) throw new Error('Questo MusicXML è in formato "timewise", non supportato. Esportalo come "partwise".');
+  const t=readTransposeOf(doc);
+  const nameEl=doc.querySelector('score-part > part-name, score-part instrument-name');
+  const instName=((doc.querySelector('instrument-name')||{}).textContent||'')+' '+((nameEl||{}).textContent||'');
+  let id=null;
+  for(const i of INSTR){ if(i.re && i.re.test(instName) && i.d===t.d && i.c===t.c){ id=i.id; break; } }
+  if(!id){ const m=INSTR.find(i=>i.d===t.d && i.c===t.c); id=m?m.id:'file'; }
+  S.loop=null; S.loopMode=0; S.loopA=null; syncLoopUi();
+  S.srcDoc=doc; S.srcT={d:t.d,c:t.c}; S.fileInstr=id==='file'?{d:t.d,c:t.c}:null;
+  S.srcId=id; S.dstId=id;
+  const title=(doc.querySelector('work-title')||doc.querySelector('movement-title')||{}).textContent;
+  const comp=(doc.querySelector('creator[type="composer"]')||{}).textContent;
+  const mv=(doc.querySelector('movement-title')||{}).textContent;
+  $('pieceTitle').textContent=(mv||title||'Spartito senza titolo').trim();
+  $('pieceMeta').textContent=[comp&&comp.trim(), t.found?null:'Trasposizione non indicata nel file: controlla "Spartito scritto per"'].filter(Boolean).join(' · ')||' ';
+}
+async function unzipMxl(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf);
+  let e=u8.length-22; while(e>=0 && dv.getUint32(e,true)!==0x06054b50) e--;
+  if(e<0) throw new Error('Archivio MXL non valido.');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const files={};
+  const dec=new TextDecoder();
+  for(let i=0;i<n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=dec.decode(u8.subarray(p+46,p+46+nl));
+    files[name]={method,csize,lo}; p+=46+nl+el+cl;
+  }
+  const read=async name=>{
+    const f=files[name]; const lnl=dv.getUint16(f.lo+26,true), lel=dv.getUint16(f.lo+28,true);
+    const start=f.lo+30+lnl+lel; const raw=u8.subarray(start,start+f.csize);
+    if(f.method===0) return dec.decode(raw);
+    const ds=new DecompressionStream('deflate-raw'); const w=ds.writable.getWriter(); w.write(raw); w.close();
+    return dec.decode(await new Response(ds.readable).arrayBuffer());
+  };
+  let root=null;
+  if(files['META-INF/container.xml']){
+    const c=new DOMParser().parseFromString(await read('META-INF/container.xml'),'application/xml');
+    const rf=c.querySelector('rootfile'); if(rf) root=rf.getAttribute('full-path');
+  }
+  if(!root || !files[root]) root=Object.keys(files).find(k=>/\.(xml|musicxml)$/i.test(k)&&!k.startsWith('META-INF'));
+  if(!root) throw new Error('Nessuno spartito trovato nell\'archivio MXL.');
+  return read(root);
+}
+async function loadFile(file){
+  try{
+    let text;
+    if(/\.mxl$/i.test(file.name)) text=await unzipMxl(await file.arrayBuffer());
+    else text=await file.text();
+    parseSource(text); fillSelects(); S.pos=0; S.stepIdx=0;
+    await rebuild(); say('Caricato: '+file.name);
+  }catch(err){ say(err.message||String(err), 8000); }
+}
+
+/* ---------- Menu strumenti ---------- */
+function fillSelects(){
+  for(const [id,withFile] of [['srcInstr',true],['dstInstr',false]]){
+    const sel=$(id); sel.innerHTML=''; const groups={};
+    for(const i of INSTR){
+      if(!groups[i.g]){ groups[i.g]=document.createElement('optgroup'); groups[i.g].label=i.g; sel.appendChild(groups[i.g]); }
+      const o=document.createElement('option'); o.value=i.id; o.textContent=i.n; groups[i.g].appendChild(o);
+    }
+    if(S.fileInstr){
+      const o=document.createElement('option'); o.value='file'; o.textContent='Come indicato nel file (non in elenco)'; sel.insertBefore(o,sel.firstChild);
+    }
+  }
+  $('srcInstr').value=S.srcId; $('dstInstr').value=S.dstId; $('octave').value=String(S.octave);
+}
+const getT = id => id==='file' ? (S.fileInstr||{d:0,c:0}) : (byId(id)||{d:0,c:0});
+
+/* ---------- Costruzione dello spartito ---------- */
+async function rebuild(){
+  if(!S.srcDoc) return;
+  S.rebuilding=true;
+  const wasPlaying=S.playing; const keepPos=S.pos;
+  pauseAudio(false);
+  const Ts=getT(S.srcId), Td=getT(S.dstId);
+  const dd=Ts.d-Td.d+7*S.octave, dc=Ts.c-Td.c+12*S.octave;
+  const doc=S.srcDoc.cloneNode(true);
+  const info=transposeDoc(doc,dd,dc);
+  if(S.view!=='riga') applyLineBreaks(doc,S.perLine);
+  const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/,'');
+  const box=$('score'); box.innerHTML='';
+  try{
+    osmd=new opensheetmusicdisplay.OpenSheetMusicDisplay(box,{
+      autoResize:false, backend:'svg', drawTitle:false, drawSubtitle:false, drawComposer:false, drawPartNames:false,
+      drawingParameters:'default', autoBeam:true, renderSingleHorizontalStaffline:S.view==='riga', newSystemFromXML:S.view!=='riga',
+      cursorsOptions:[{type:0,color:'#e4571a',alpha:.45,follow:false}]
+    });
+    await osmd.load(xml);
+    S.effZoom=S.zoom;
+    osmd.zoom=S.effZoom;
+    osmd.render();
+    if(S.view!=='riga'){
+      /* le battute per rigo richieste devono entrare nella larghezza: se vanno a capo, riduco lo zoom */
+      const expected=Math.ceil(countRealMeasures(S.srcDoc)/S.perLine);
+      for(let k=0;k<7 && osmd.GraphicSheet.MusicPages[0].MusicSystems.length>expected;k++){
+        S.effZoom*=0.9; osmd.zoom=S.effZoom; osmd.render();
+      }
+    }
+    osmd.cursor.show();
+  }catch(err){ S.rebuilding=false; say('Impossibile disegnare lo spartito: '+(err.message||err), 9000); return; }
+  buildTimeline();
+  layoutView();
+  S.origBpm=Math.round((osmd.Sheet.DefaultStartTempoInBpm||100));
+  if(!S.bpmTouched){ S.bpm=S.origBpm; }
+  syncTempoUi();
+  $('seek').max=Math.max(0,S.steps.length-1);
+  S.hlStep=-1;
+  setStepFromPos(keepPos,true);
+  describeTransposition(Ts,Td,dd,dc,info);
+  S.rebuilding=false;
+  if(wasPlaying) play();
+}
+function describeTransposition(Ts,Td,dd,dc,info){
+  const a=S.srcId==='file'?'lo strumento del file':byId(S.srcId).n;
+  const b=byId(S.dstId)?byId(S.dstId).n:'lo strumento del file';
+  let moto='altezze scritte invariate';
+  if(dc!==0){ const oct=Math.trunc(Math.abs(dc)/12), rest=Math.abs(dc)%12;
+    moto='altezze scritte '+(dc<0?'più gravi':'più acute')+' di '+(oct?oct+(oct===1?' ottava':' ottave')+(rest?' e ':''):'')+(rest?rest+(rest===1?' semitono':' semitoni'):''); }
+  const same=info.before===info.after;
+  $('transInfo').textContent=`Scritto per ${a}, letto da chi suona ${b}: ${moto}. Armatura: ${keyText(info.before)}${same?' (invariata)':' → '+keyText(info.after)}. Il suono reale resta quello dello spartito originale.`;
+}
+
+function buildTimeline(){
+  const c=osmd.cursor; c.reset();
+  const steps=[], events=[], evByNote=new Map(); let guard=0;
+  while(!c.Iterator.EndReached && guard++<100000){
+    const ts=c.Iterator.currentTimeStamp.RealValue;
+    const notes=c.NotesUnderCursor(), gn=c.GNotesUnderCursor();
+    const ce=c.cursorElement;
+    steps.push({ts, m:c.Iterator.CurrentMeasureIndex, g:gn, x:ce?ce.offsetLeft:0, y:ce?ce.offsetTop:0, h:ce?ce.offsetHeight:0});
+    for(const n of notes){
+      if(n.isRest()||!n.Pitch) continue;
+      const len=n.Length.RealValue;
+      const tie=n.NoteTie;
+      if(tie && tie.StartNote!==n && evByNote.has(tie.StartNote)){
+        const ev=evByNote.get(tie.StartNote); ev.len+=len; evByNote.set(n,ev); continue;
+      }
+      const ev={pos:ts, len, written:n.Pitch.getHalfTone()+12};
+      events.push(ev); evByNote.set(n,ev);
+    }
+    c.next();
+  }
+  c.reset();
+  S.steps=steps; S.events=events.sort((a,b)=>a.pos-b.pos);
+  S.endPos=events.reduce((m,e)=>Math.max(m,e.pos+e.len), steps.length?steps[steps.length-1].ts:0);
+  S.measureFirst=[]; S.measureNums=[];
+  steps.forEach((s,i)=>{ if(S.measureFirst[s.m]===undefined) S.measureFirst[s.m]=i; });
+  const sm=osmd.Sheet.SourceMeasures; S.measureNums=sm.map(m=>m.MeasureNumber);
+  /* clic del metronomo allineati alla battuta, anche con l'anacrusi */
+  const clicks=[];
+  sm.forEach((m,i)=>{
+    const ts=m.ActiveTimeSignature, num=ts.Numerator, den=ts.Denominator, full=num/den;
+    const compound=den===8&&num%3===0&&num>3, beat=compound?3/8:1/den;
+    const dur=m.Duration.RealValue, abs=m.AbsoluteTimestamp.RealValue;
+    const start=(i===0&&dur<full-1e-9)?abs+dur-full:abs;
+    for(let k=0;;k++){ const p=start+k*beat; if(p>=abs+dur-1e-9) break; if(p>=abs-1e-9) clicks.push({pos:p,accent:k===0}); }
+  });
+  S.clicks=clicks;
+  S.velocity=null;
+}
+
+/* ---------- Evidenziazione e cursore ---------- */
+function paint(gnotes, mode){
+  for(const gn of gnotes){
+    const g=gn.getSVGGElement&&gn.getSVGGElement(); if(!g) continue;
+    const color=mode==='cur'?getComputedStyle(document.documentElement).getPropertyValue('--hl').trim()||'#e4571a':mode==='played'?'#7d93a8':'';
+    g.querySelectorAll('path,rect,text').forEach(el=>{
+      if(el.getAttribute('fill')==='none'){ el.style.stroke=color; } else { el.style.fill=color; }
+    });
+  }
+}
+function setStep(i, scroll=true){
+  if(!S.steps.length) return;
+  i=Math.max(0,Math.min(S.steps.length-1,i));
+  const last=S.hlStep;
+  if(last===i) return;
+  const c=osmd.cursor;
+  if(last>=0 && i===last+1){ c.next(); }
+  else { c.reset(); for(let k=0;k<i;k++) c.next(); }
+  /* evidenzia: la nota in corso in arancio, quelle già suonate in grigio-azzurro */
+  if(last>=0 && i===last+1){ paint(S.steps[last].g,'played'); }
+  else { for(let k=0;k<S.steps.length;k++){ paint(S.steps[k].g, k<i?'played':null); } }
+  paint(S.steps[i].g,'cur');
+  S.hlStep=i; S.stepIdx=i;
+  const mi=S.steps[i].m, num=S.measureNums[mi];
+  $('barLabel').textContent=num===0?'Anacrusi':'Battuta '+num+' / '+S.measureNums[S.measureNums.length-1];
+  $('seek').value=String(i);
+  if(scroll) followCursor();
+}
+
+/* ---------- Righi, finestra di lettura, ripetizione ---------- */
+function countRealMeasures(doc){
+  const part=doc.querySelector('part'); if(!part) return 1;
+  let n=0; part.querySelectorAll(':scope > measure').forEach(m=>{ if(!(m.getAttribute('implicit')==='yes'||m.getAttribute('number')==='0')) n++; });
+  return Math.max(1,n);
+}
+function applyLineBreaks(doc,N){
+  doc.querySelectorAll('print').forEach(p=>{ p.removeAttribute('new-system'); p.removeAttribute('new-page'); });
+  doc.querySelectorAll('part').forEach(part=>{
+    let n=0;
+    part.querySelectorAll(':scope > measure').forEach(m=>{
+      if(m.getAttribute('implicit')==='yes'||m.getAttribute('number')==='0') return;
+      if(n>0 && n%N===0){ const p=doc.createElementNS(m.namespaceURI,'print'); p.setAttribute('new-system','yes'); m.insertBefore(p,m.firstChild); }
+      n++;
+    });
+  });
+}
+function mrect(m){
+  const g=osmd.GraphicSheet.MeasureList[m]&&osmd.GraphicSheet.MeasureList[m][0]; if(!g) return null;
+  const ps=g.PositionAndShape, z=S.effZoom*10;
+  return {x:ps.AbsolutePosition.x*z, y:ps.AbsolutePosition.y*z, w:ps.Size.width*z};
+}
+const PADV=58;
+function layoutView(){
+  const box=$('score'), wrap=$('scoreWrap');
+  wrap.classList.toggle('due',S.view==='due');
+  const ys=[]; S.steps.forEach(s=>{ if(!ys.some(y=>Math.abs(y-s.y)<3)) ys.push(s.y); }); ys.sort((a,b)=>a-b);
+  S.rows=ys; S.rowOf=S.steps.map(s=>ys.findIndex(y=>Math.abs(y-s.y)<3));
+  S.rowFirstM=ys.map(()=>1e9); S.steps.forEach((s,i)=>{ const r=S.rowOf[i]; if(s.m<S.rowFirstM[r]) S.rowFirstM[r]=s.m; });
+  S.winRow=0;
+  if(S.view==='due'){
+    const pad=PADV, h=S.steps.length?S.steps[0].h:100;
+    const pitch=ys.length>1?ys[1]-ys[0]:0;
+    S.dueH=Math.round((pitch||h+40)+h+2*pad);
+    box.style.height=S.dueH+'px';
+    wrap.style.height=(S.dueH+2)+'px'; wrap.style.flex='none';
+  } else { box.style.height=''; wrap.style.height=''; wrap.style.flex=''; }
+  $('perLine').disabled=(S.view==='riga'); $('perLineLbl').style.opacity=S.view==='riga'?'.4':'1';
+  drawLoop();
+}
+function loopPos(){
+  if(!S.loop||!S.steps.length) return null;
+  const a=S.loop.a, b=S.loop.b;
+  const sa=S.measureFirst[a], sb=S.measureFirst[b+1];
+  return {start:S.steps[sa].ts, end:sb===undefined?S.endPos:S.steps[sb].ts};
+}
+function drawLoop(){
+  S.loopEls.forEach(e=>e.remove()); S.loopEls=[];
+  const box=$('score'); if(!box||!osmd||!S.steps.length) return;
+  let a=null,b=null;
+  if(S.loop){ a=S.loop.a; b=S.loop.b; } else if(S.loopMode===2&&S.loopA!==null){ a=b=S.loopA; }
+  if(a===null) return;
+  const h=S.steps[0].h;
+  for(let m=a;m<=b;m++){
+    const r=mrect(m); if(!r) continue;
+    const d=document.createElement('div'); d.className='loopbox';
+    d.style.left=r.x+'px'; d.style.top=(r.y-8)+'px'; d.style.width=r.w+'px'; d.style.height=(h+16)+'px';
+    box.appendChild(d); S.loopEls.push(d);
+  }
+}
+function syncLoopUi(){
+  const b=$('loopBtn'); if(!b) return;
+  const active=!!S.loop||S.loopMode>0;
+  b.setAttribute('aria-pressed',String(active)); b.classList.toggle('armed',S.loopMode>0);
+  const num=i=>{ const n=S.measureNums[i]; return n===0?'anacrusi':n; };
+  $('loopTxt').textContent = S.loop ? ('Ripeto battute '+num(S.loop.a)+(S.loop.b!==S.loop.a?'–'+num(S.loop.b):'')+' (annulla)')
+    : S.loopMode===1 ? 'Tocca la battuta iniziale…' : S.loopMode===2 ? 'Tocca la battuta finale…' : 'Ripeti passaggio';
+}
+function toggleLoop(){
+  if(S.loop||S.loopMode>0){ S.loop=null; S.loopMode=0; S.loopA=null; }
+  else { S.loopMode=1; }
+  drawLoop(); syncLoopUi();
+}
+function stepForClick(e){
+  const box=$('score'), r=box.getBoundingClientRect();
+  const x=e.clientX-r.left+box.scrollLeft, y=e.clientY-r.top+box.scrollTop;
+  const h=S.steps[0].h;
+  let m=-1;
+  for(let k=0;k<S.measureFirst.length;k++){
+    const mr=mrect(k); if(!mr) continue;
+    if(x>=mr.x && x<mr.x+mr.w && y>=mr.y-26 && y<=mr.y+h+26){ m=k; break; }
+  }
+  if(m<0) return null;
+  const z=S.effZoom;
+  let best=-1,bd=1e9;
+  S.steps.forEach((s,i)=>{ if(s.m!==m) return; const d=Math.abs(s.x+6*z-x); if(d<bd){ bd=d; best=i; } });
+  if(best<0) return null;
+  return bd<=15*z ? best : S.measureFirst[m];
+}
+function onScoreClick(e){
+  if(!S.steps.length||!osmd) return;
+  if(e.target.closest&&e.target.closest('a,button')) return;
+  const i=stepForClick(e); if(i===null||i===undefined) return;
+  const m=S.steps[i].m;
+  if(S.loopMode===1){ S.loopA=m; S.loopMode=2; drawLoop(); syncLoopUi(); return; }
+  if(S.loopMode===2){
+    const a=Math.min(S.loopA,m), b=Math.max(S.loopA,m);
+    S.loop={a,b}; S.loopMode=0; S.loopA=null; drawLoop(); syncLoopUi();
+    seekTo(S.steps[S.measureFirst[a]].ts); say('Ripeto le battute selezionate. Premi Riproduci per partire.',4000);
+    return;
+  }
+  seekTo(S.steps[i].ts);
+}
+
+function followCursor(){
+  const box=$('score'); const i=S.hlStep>=0?S.hlStep:S.stepIdx; const st=S.steps[i]; if(!st) return;
+  const smooth=S.playing?'smooth':'auto';
+  if(S.view==='riga'){
+    const el=osmd.cursor.cursorElement; if(!el) return;
+    const x=el.offsetLeft-box.clientWidth*0.28;
+    box.scrollTo({left:Math.max(0,x),behavior:smooth});
+  } else if(S.view==='due'){
+    /* finestra di due righi: la battuta precedente resta sempre visibile.
+       Si passa al rigo successivo quando il cursore arriva alla seconda battuta del rigo in basso. */
+    const r=S.rowOf[i]; if(r===undefined||r<0) return;
+    const bar=st.m-S.rowFirstM[r];
+    if(r<S.winRow||r>S.winRow+1) S.winRow=(bar===0&&r>0)?r-1:r;
+    else if(r===S.winRow+1&&bar>=1) S.winRow=r;
+    box.scrollTo({top:Math.max(0,S.rows[S.winRow]-PADV),behavior:smooth});
+  } else {
+    box.scrollTo({top:Math.max(0,st.y-box.clientHeight*0.3),behavior:smooth});
+  }
+}
+function stepAt(pos){
+  let lo=0, hi=S.steps.length-1, r=0;
+  while(lo<=hi){ const mid=(lo+hi)>>1; if(S.steps[mid].ts<=pos+1e-9){ r=mid; lo=mid+1; } else hi=mid-1; }
+  return r;
+}
+function setStepFromPos(pos, force){
+  S.pos=pos; if(force) S.hlStep=-1; setStep(stepAt(pos));
+}
+
+/* ---------- Audio ---------- */
+function ensureCtx(){
+  if(ctx) return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=4;
+  master=ctx.createGain(); master.gain.value=1; master.connect(comp); comp.connect(ctx.destination);
+}
+function transposeSounding(){ return getT(S.dstId).c; }
+function startVoice(ev, when){
+  const midi=ev.written+transposeSounding();
+  const f=440*Math.pow(2,(midi-69)/12);
+  const out=ctx.createGain(); out.gain.setValueAtTime(0,when);
+  out.gain.linearRampToValueAtTime(.38*S.vol,when+.035);
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(f*5,4200); lp.Q.value=1.2;
+  const o1=ctx.createOscillator(); o1.type='sawtooth'; o1.frequency.value=f;
+  const o2=ctx.createOscillator(); o2.type='triangle'; o2.frequency.value=f; o2.detune.value=5;
+  const lfo=ctx.createOscillator(); lfo.frequency.value=5.2; const lg=ctx.createGain(); lg.gain.setValueAtTime(0,when); lg.gain.linearRampToValueAtTime(7,when+.5);
+  lfo.connect(lg); lg.connect(o1.detune); lg.connect(o2.detune);
+  o1.connect(lp); o2.connect(lp); lp.connect(out); out.connect(master);
+  o1.start(when); o2.start(when); lfo.start(when);
+  const v={ev,out,o1,o2,lfo,end:ev.pos+ev.len*0.94,released:false,stopAt:Infinity};
+  S.voices.push(v);
+}
+function releaseVoice(v, when){
+  if(v.released) return; v.released=true;
+  const t=Math.max(when,ctx.currentTime);
+  v.out.gain.cancelScheduledValues(t); v.out.gain.setValueAtTime(v.out.gain.value,t); v.out.gain.setTargetAtTime(0,t,.04);
+  v.stopAt=t+.3; [v.o1,v.o2,v.lfo].forEach(o=>{ try{o.stop(v.stopAt);}catch(e){} });
+}
+function click(when, accent, force){
+  if(!S.metro&&!force) return;
+  const o=ctx.createOscillator(); o.type='square'; o.frequency.value=accent?1500:1000;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(.45*S.metroVol,when+.002); g.gain.exponentialRampToValueAtTime(.0008,when+.06);
+  o.connect(g); g.connect(master); o.start(when); o.stop(when+.08);
+}
+function schedule(){
+  if(!S.playing) return;
+  const now=ctx.currentTime, spw=240/S.bpm;
+  const lp=loopPos();
+  let guard=0;
+  for(;;){
+    const posNow=S.anchor.pos0+(now-S.anchor.t0)/spw;
+    let horizon=posNow+LOOKAHEAD/spw;
+    const at=p=>Math.max(now,S.anchor.t0+(p-S.anchor.pos0)*spw);
+    const wrap=!!lp && horizon>=lp.end-1e-9 && S.anchor.pos0<lp.end-1e-9 && guard++<4;
+    const lim=wrap?lp.end:horizon;
+    while(S.evPtr<S.events.length && S.events[S.evPtr].pos<lim){ const e=S.events[S.evPtr++]; startVoice(e,at(e.pos)); }
+    while(S.clPtr<S.clicks.length && S.clicks[S.clPtr].pos<lim){ const c=S.clicks[S.clPtr++]; click(at(c.pos),c.accent); }
+    if(wrap){
+      const tEnd=at(lp.end);
+      for(const v of S.voices) if(!v.released) releaseVoice(v,tEnd);
+      S.anchor={t0:S.anchor.t0+(lp.end-S.anchor.pos0)*spw,pos0:lp.start};
+      ptrsFrom(lp.start); S.loopWrapAt=S.anchor.t0;
+      continue;
+    }
+    for(const v of S.voices) if(!v.released && v.end<=horizon) releaseVoice(v,at(v.end));
+    break;
+  }
+  S.voices=S.voices.filter(v=>!(v.released && v.stopAt<now-.1));
+}
+function currentPos(){
+  if(!S.playing) return S.pos;
+  if(S.countUntil && ctx.currentTime<S.countUntil) return S.anchor.pos0;
+  const p=S.anchor.pos0+(ctx.currentTime-S.anchor.t0)/(240/S.bpm);
+  const lp=loopPos();
+  if(lp && p<lp.start-1e-9 && ctx.currentTime<S.anchor.t0) return lp.end+(p-lp.start);
+  return p;
+}
+function ptrsFrom(pos){
+  S.evPtr=S.events.findIndex(e=>e.pos>=pos-1e-9); if(S.evPtr<0) S.evPtr=S.events.length;
+  S.clPtr=S.clicks.findIndex(c=>c.pos>=pos-1e-9); if(S.clPtr<0) S.clPtr=S.clicks.length;
+}
+function silence(){
+  if(!ctx) return;
+  S.voices.forEach(v=>releaseVoice(v,ctx.currentTime)); S.voices=[];
+}
+function countInBeats(){
+  const st=S.steps[S.stepIdx]; const sm=osmd.Sheet.SourceMeasures[st.m]; const ts=sm.ActiveTimeSignature;
+  const num=ts.Numerator, den=ts.Denominator, compound=den===8&&num%3===0&&num>3;
+  const beat=compound?3/8:1/den; return {n:Math.round((num/den)/beat), beat};
+}
+async function play(){
+  if(!S.steps.length) return;
+  try{ ensureCtx(); await ctx.resume(); }catch(e){ say('Il browser non permette l\'audio: tocca di nuovo Riproduci.'); return; }
+  if(S.pos>=S.endPos-1e-6) setStepFromPos(0,false);
+  const lp0=loopPos();
+  if(lp0 && (S.pos<lp0.start-1e-9 || S.pos>=lp0.end-1e-9)) setStepFromPos(lp0.start,false);
+  S.pos=S.steps[S.stepIdx].ts;
+  const spw=240/S.bpm; let lead=.08; S.countUntil=0;
+  if(S.countIn){
+    const {n,beat}=countInBeats(); const t0=ctx.currentTime+.08;
+    for(let k=0;k<n;k++) click(t0+k*beat*spw,k===0,true);
+    lead=.08+n*beat*spw; S.countUntil=ctx.currentTime+lead;
+  }
+  S.anchor={t0:ctx.currentTime+lead,pos0:S.pos};
+  ptrsFrom(S.pos);
+  S.playing=true; setPlayIcon(true);
+  clearInterval(timer); timer=setInterval(schedule,25); schedule();
+  cancelAnimationFrame(raf); raf=requestAnimationFrame(tick);
+}
+function pauseAudio(snap=true){
+  if(S.playing){
+    S.pos=Math.max(0,currentPos());
+    if(snap && S.steps.length) S.pos=S.steps[stepAt(S.pos)].ts;
+  }
+  S.playing=false; S.countUntil=0; setPlayIcon(false);
+  clearInterval(timer); cancelAnimationFrame(raf); silence();
+}
+function setPlayIcon(on){
+  $('icoPlay').style.display=on?'none':''; $('icoPause').style.display=on?'':'none';
+  $('btnPlay').setAttribute('aria-label',on?'Pausa':'Riproduci');
+}
+function tick(){
+  if(!S.playing) return;
+  if(S.countUntil && ctx.currentTime<S.countUntil){ raf=requestAnimationFrame(tick); return; }
+  const pos=currentPos();
+  if(pos>=S.endPos){ pauseAudio(false); S.pos=S.endPos; setStep(S.steps.length-1); return; }
+  const i=stepAt(Math.max(0,pos));
+  if(i!==S.hlStep) setStep(i);
+  raf=requestAnimationFrame(tick);
+}
+function seekTo(pos){
+  const wasPlaying=S.playing;
+  if(wasPlaying){ silence(); }
+  const i=stepAt(Math.max(0,pos)); S.pos=S.steps[i].ts; setStep(i);
+  if(wasPlaying){ S.anchor={t0:ctx.currentTime+.05,pos0:S.pos}; ptrsFrom(S.pos); }
+}
+function jumpBars(n){
+  const cur=S.steps[S.stepIdx].m;
+  const target=Math.max(0,Math.min(S.measureFirst.length-1,cur+n));
+  const idx=S.measureFirst[target]; if(idx===undefined) return;
+  seekTo(S.steps[idx].ts);
+}
+
+/* ---------- Tempo ---------- */
+function syncTempoUi(){
+  $('bpm').value=S.bpm; $('bpmRange').value=S.bpm;
+  $('bpmPct').textContent=Math.round(100*S.bpm/(S.origBpm||S.bpm))+'%';
+}
+function setBpm(v){
+  v=Math.max(30,Math.min(240,Math.round(v)||S.bpm));
+  if(S.playing){ const p=currentPos(); S.anchor={t0:ctx.currentTime,pos0:p}; }
+  S.bpm=v; S.bpmTouched=true; syncTempoUi();
+}
+
+/* ---------- Comandi ---------- */
+function holdButton(btn, dir){
+  let rep=null, held=false, to=null;
+  const stop=()=>{ clearTimeout(to); clearInterval(rep); rep=null; };
+  btn.addEventListener('pointerdown',e=>{
+    e.preventDefault(); held=false; jumpBars(dir);
+    to=setTimeout(()=>{ held=true; rep=setInterval(()=>jumpBars(dir*2),130); },420);
+    btn.setPointerCapture(e.pointerId);
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>btn.addEventListener(ev,stop));
+  btn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); jumpBars(dir); } });
+}
+function bind(){
+  $('btnPlay').addEventListener('click',()=>{ S.playing?pauseAudio(true):play(); });
+  $('btnStart').addEventListener('click',()=>seekTo(0));
+  holdButton($('btnFwd'),1); holdButton($('btnBack'),-1);
+  $('seek').addEventListener('input',e=>seekTo(S.steps[parseInt(e.target.value,10)].ts));
+  $('bpm').addEventListener('change',e=>setBpm(parseFloat(e.target.value)));
+  $('bpmRange').addEventListener('input',e=>setBpm(parseFloat(e.target.value)));
+  $('bpmReset').addEventListener('click',()=>{ S.bpmTouched=false; setBpm(S.origBpm); S.bpmTouched=false; });
+  $('metro').addEventListener('click',()=>{ S.metro=!S.metro; $('metro').setAttribute('aria-pressed',String(S.metro)); });
+  $('metroVol').addEventListener('input',e=>{ S.metroVol=e.target.value/100; });
+  $('vol').addEventListener('input',e=>{ S.vol=e.target.value/100; });
+  $('srcInstr').addEventListener('change',e=>{ S.srcId=e.target.value; if(S.dstId==='file'&&!S.fileInstr) S.dstId=S.srcId; rebuild(); });
+  $('dstInstr').addEventListener('change',e=>{ S.dstId=e.target.value; rebuild(); });
+  $('octave').addEventListener('change',e=>{ S.octave=parseInt(e.target.value,10); rebuild(); });
+  $('view').addEventListener('change',e=>{ S.view=e.target.value; try{localStorage.setItem('lettore.view',S.view);}catch(_){} rebuild(); });
+  $('perLine').addEventListener('change',e=>{ S.perLine=parseInt(e.target.value,10); try{localStorage.setItem('lettore.perLine',String(S.perLine));}catch(_){} rebuild(); });
+  $('loopBtn').addEventListener('click',toggleLoop);
+  $('countBtn').addEventListener('click',()=>{ S.countIn=!S.countIn; $('countBtn').setAttribute('aria-pressed',String(S.countIn)); });
+  $('score').addEventListener('click',onScoreClick);
+  let zt=null; $('zoom').addEventListener('input',e=>{ S.zoom=e.target.value/100; clearTimeout(zt); zt=setTimeout(rebuild,200); });
+  $('fileInput').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadFile(f); e.target.value=''; });
+  $('bookSel').addEventListener('change',e=>openBook(e.target.value,0));
+  $('pieceSel').addEventListener('change',e=>openPiece(parseInt(e.target.value,10)));
+  $('pPrev').addEventListener('click',()=>openPiece(LIB.idx-1));
+  $('pNext').addEventListener('click',()=>openPiece(LIB.idx+1));
+  const wrap=$('scoreWrap');
+  ['dragenter','dragover'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.preventDefault(); wrap.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.preventDefault(); wrap.classList.remove('drag'); }));
+  wrap.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
+  document.addEventListener('keydown',e=>{
+    const tag=(document.activeElement||{}).tagName;
+    if(tag==='INPUT'&&document.activeElement.type!=='range'||tag==='SELECT') return;
+    if(e.code==='Space'&&tag!=='BUTTON'){ e.preventDefault(); $('btnPlay').click(); }
+    else if(e.key==='ArrowRight'&&tag!=='INPUT'){ jumpBars(1); }
+    else if(e.key==='ArrowLeft'&&tag!=='INPUT'){ jumpBars(-1); }
+    else if(e.key==='m'||e.key==='M'){ $('metro').click(); }
+    else if(e.key==='Escape'&&(S.loop||S.loopMode)){ toggleLoop(); }
+  });
+  let rt=null;
+  window.addEventListener('resize',()=>{ if(S.view==='riga') return; clearTimeout(rt); rt=setTimeout(rebuild,250); });
+}
+
+/* ---------- Archivio (libri e brani) ---------- */
+const LIB={books:[],book:null,idx:0,base:'library/'};
+async function getJson(path){ const r=await fetch(path,{cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status+' '+path); return r.json(); }
+function fillPieces(){
+  const sel=$('pieceSel'); sel.innerHTML='';
+  LIB.book.pieces.forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=p.label||p.title; sel.appendChild(o); });
+  sel.value=LIB.idx; $('pPrev').disabled=LIB.idx<=0; $('pNext').disabled=LIB.idx>=LIB.book.pieces.length-1;
+}
+async function openPiece(i){
+  const p=LIB.book.pieces[i]; if(!p) return;
+  LIB.idx=i; fillPieces();
+  try{
+    pauseAudio && pauseAudio();
+    const r=await fetch(LIB.book.dir+p.file); if(!r.ok) throw new Error('Brano non trovato ('+r.status+').');
+    const text=await r.text();
+    S.octave=0; S.bpmTouched=false;
+    parseSource(text); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
+    try{ localStorage.setItem('lettore.last',LIB.book.id+'/'+i); }catch(e){}
+  }catch(err){ say(err.message||String(err),8000); }
+}
+async function openBook(id,idx){
+  const b=LIB.books.find(x=>x.id===id)||LIB.books[0];
+  if(!b.pieces){ const d=await getJson(LIB.base+b.path+'book.json'); b.pieces=d.pieces; b.dir=LIB.base+b.path; }
+  LIB.book=b; $('bookSel').value=b.id;
+  await openPiece(Math.min(Math.max(idx||0,0),b.pieces.length-1));
+}
+async function libInit(){
+  const idx=await getJson(LIB.base+'index.json'); LIB.books=idx.books;
+  const bs=$('bookSel'); bs.innerHTML='';
+  LIB.books.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=b.title; bs.appendChild(o); });
+  let id=LIB.books[0].id, n=0;
+  try{ const last=(localStorage.getItem('lettore.last')||'').split('/'); if(last[0]&&LIB.books.some(b=>b.id===last[0])){ id=last[0]; n=parseInt(last[1],10)||0; } }catch(e){}
+  await openBook(id,n);
+}
+async function loadDefault(){
+  S.octave=0; S.bpmTouched=false;
+  parseSource(DEFAULT_XML); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
+}
+
+/* ---------- Avvio ---------- */
+(async function start(){
+  try{ const v=localStorage.getItem('lettore.view'); if(['due','riga','intero'].includes(v)){ S.view=v; $('view').value=v; } const pl=parseInt(localStorage.getItem('lettore.perLine'),10); if([3,4,5,6].includes(pl)){ S.perLine=pl; $('perLine').value=String(pl); } }catch(_){}
+  bind();
+  if(typeof opensheetmusicdisplay==='undefined'){ say('Non riesco a caricare la libreria di notazione. Controlla la connessione e ricarica la pagina.',0); return; }
+  try{ await libInit(); }
+  catch(err){ $('picker').hidden=true; try{ await loadDefault(); say('Archivio non raggiungibile: mostro il brano di prova.',6000); }catch(e2){ say(e2.message||String(e2),9000); } }
+  window.__lettore={S, get osmd(){return osmd;}, transposeFifths, transposeDoc, parseSource, rebuild, LIB, openPiece, openBook, setBpm, play, pauseAudio, seekTo, jumpBars};
+})();
+})();
+</script>
+</body>
+</html>
