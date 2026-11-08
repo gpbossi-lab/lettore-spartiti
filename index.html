@@ -77,6 +77,15 @@ header.top p{margin:2px 0 0;color:var(--muted);font-size:13px}
 input[type=range]{accent-color:var(--accent);min-width:110px}
 input[type=number]{width:72px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);max-width:260px}
+.accrow{display:inline-flex;gap:6px;align-items:flex-end;flex-wrap:wrap}
+.acc{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:30px;padding:4px 4px 2px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font:inherit;font-size:11px;color:var(--muted)}
+.acc .ic{display:block;width:18px;height:18px;position:relative}
+.acc .ic::before{content:"";position:absolute;left:50%;top:50%;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%)}
+.acc[data-s="0"] .ic::before{width:6px;height:6px;opacity:.55}
+.acc[data-s="3"] .ic::before{width:11px;height:11px;opacity:.8}
+.acc[data-s="1"] .ic::before{width:17px;height:17px}
+.acc[data-s="2"] .ic::before{width:13px;height:13px;background:none;border:2px dashed var(--line)}
+.acc.now{border-color:var(--hl)}
 .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-weight:500;font-size:14px}
 .switch .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
 .switch[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
@@ -156,6 +165,12 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
         <input id="metroVol" type="range" min="0" max="100" value="60" style="min-width:80px">
         <label class="cap" for="vol">Strumento</label>
         <input id="vol" type="range" min="0" max="100" value="80" style="min-width:80px">
+      </div>
+      <div class="group" id="clickOpts">
+        <label class="cap" for="subdiv">Suddivisione</label>
+        <select id="subdiv" aria-label="Suddivisione del click"></select>
+        <span class="cap">Accenti</span>
+        <span class="accrow" id="accRow" role="group" aria-label="Accenti dei beat della battuta"></span>
       </div>
       <div class="group">
         <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
@@ -256,7 +271,7 @@ const S = {
   bpm:100, origBpm:100,
   steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
   pos:0, stepIdx:0, playing:false, anchor:{t0:0,pos0:0},
-  evPtr:0, clPtr:0, voices:[], metro:false, vol:.8, metroVol:.6,
+  subdiv:1, acc:[1], accMeter:null, evPtr:0, clPtr:0, voices:[], metro:false, vol:.8, metroVol:.6,
   hlStep:-1, rebuilding:false
 };
 let osmd=null, ctx=null, master=null, timer=null, raf=null;
@@ -470,16 +485,10 @@ function buildTimeline(){
   S.measureFirst=[]; S.measureNums=[];
   steps.forEach((s,i)=>{ if(S.measureFirst[s.m]===undefined) S.measureFirst[s.m]=i; });
   const sm=osmd.Sheet.SourceMeasures; S.measureNums=sm.map(m=>m.MeasureNumber);
-  /* clic del metronomo allineati alla battuta, anche con l'anacrusi */
-  const clicks=[];
-  sm.forEach((m,i)=>{
-    const ts=m.ActiveTimeSignature, num=ts.Numerator, den=ts.Denominator, full=num/den;
-    const compound=den===8&&num%3===0&&num>3, beat=compound?3/8:1/den;
-    const dur=m.Duration.RealValue, abs=m.AbsoluteTimestamp.RealValue;
-    const start=(i===0&&dur<full-1e-9)?abs+dur-full:abs;
-    for(let k=0;;k++){ const p=start+k*beat; if(p>=abs+dur-1e-9) break; if(p>=abs-1e-9) clicks.push({pos:p,accent:k===0}); }
-  });
-  S.clicks=clicks;
+  /* clic del metronomo: schema (accenti e suddivisione) in buildClicks */
+  const ts0=sm[0].ActiveTimeSignature; S.accMeter=[ts0.Numerator,ts0.Denominator];
+  S.acc=defaultAcc(ts0.Numerator,ts0.Denominator); S.subdiv=1; $('subdiv').value='1';
+  buildClicks(); renderClickOpts();
   S.velocity=null;
 }
 
@@ -692,10 +701,54 @@ function releaseVoice(v, when){
   v.out.gain.cancelScheduledValues(t); v.out.gain.setValueAtTime(v.out.gain.value,t); v.out.gain.setTargetAtTime(0,t,.04);
   v.stopAt=t+.3; [v.o1,v.o2,v.lfo].forEach(o=>{ try{o.stop(v.stopAt);}catch(e){} });
 }
-function click(when, accent, force){
+
+/* ---------- Click: beat principale = 1/denominatore (semiminima in 4/4, croma in 6/8) ---------- */
+/* stati dell'accento: 0 debole, 3 medio, 1 forte, 2 muto */
+function defaultAcc(num,den){
+  const a=new Array(num).fill(0); a[0]=1;
+  if(den===8&&num%3===0&&num>3) for(let k=3;k<num;k+=3) a[k]=3;
+  return a;
+}
+const NOTE_NAMES={1:'semibrevi',2:'minime',4:'semiminime',8:'crome',16:'semicrome',32:'biscrome',64:'semibiscrome'};
+function subName(den,n){ if(n===1) return 'solo beat'; if(n===2) return NOTE_NAMES[den*2]||'metà'; if(n===3) return 'terzine di '+(NOTE_NAMES[den*2]||'valore'); return NOTE_NAMES[den*4]||'quarti'; }
+function renderClickOpts(){
+  const den=S.accMeter?S.accMeter[1]:4, sel=$('subdiv'), cur=String(S.subdiv);
+  sel.innerHTML=[1,2,3,4].map(n=>`<option value="${n}">${n===1?'solo beat':'×'+n+' · '+subName(den,n)}</option>`).join(''); sel.value=cur;
+  const row=$('accRow'); row.innerHTML='';
+  const names=['debole','forte','muto','medio'];
+  S.acc.forEach((s,k)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='acc'; b.dataset.s=s; b.dataset.k=k;
+    b.title='Beat '+(k+1)+': '+names[s]+' (tocca per cambiare)'; b.innerHTML='<span class="ic"></span>'+(k+1);
+    b.addEventListener('click',()=>{ const order=[0,3,1,2]; S.acc[k]=order[(order.indexOf(S.acc[k])+1)%4]; onClickOptsChanged(); renderClickOpts(); });
+    row.appendChild(b);
+  });
+}
+/* livelli: 0 debole, 3 medio, 1 forte, 4 suddivisione */
+function beatLevel(k){ const s=k<S.acc.length?S.acc[k]:(k===0?1:0); return s; }
+function buildClicks(){
+  const sm=osmd.Sheet.SourceMeasures, clicks=[], n=S.subdiv;
+  sm.forEach((m,i)=>{
+    const ts=m.ActiveTimeSignature, num=ts.Numerator, den=ts.Denominator, full=num/den, beat=1/den;
+    const dur=m.Duration.RealValue, abs=m.AbsoluteTimestamp.RealValue;
+    const start=(i===0&&dur<full-1e-9)?abs+dur-full:abs;
+    for(let k=0;k<num;k++) for(let j=0;j<n;j++){
+      const p=start+k*beat+j*beat/n; if(p<abs-1e-9||p>=abs+dur-1e-9) continue;
+      if(j===0){ const lv=beatLevel(k); if(lv===2) continue; clicks.push({pos:p,level:lv}); }
+      else clicks.push({pos:p,level:4});
+    }
+  });
+  S.clicks=clicks;
+}
+function onClickOptsChanged(){
+  if(!osmd||!osmd.Sheet) return;
+  buildClicks();
+  if(S.playing){ const p=currentPos(); S.clPtr=S.clicks.findIndex(c=>c.pos>=p-1e-9); if(S.clPtr<0) S.clPtr=S.clicks.length; }
+}
+function click(when, level, force){
   if(!S.metro&&!force) return;
-  const o=ctx.createOscillator(); o.type='square'; o.frequency.value=accent?1500:1000;
-  const g=ctx.createGain(); g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(.45*S.metroVol,when+.002); g.gain.exponentialRampToValueAtTime(.0008,when+.06);
+  const o=ctx.createOscillator(); o.type='square'; o.frequency.value={1:1500,3:1250,0:1000,4:800}[level]||1000;
+  const amp=level===4?.6:1;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(.45*amp*S.metroVol,when+.002); g.gain.exponentialRampToValueAtTime(.0008,when+.06);
   o.connect(g); g.connect(master); o.start(when); o.stop(when+.08);
 }
 function schedule(){
@@ -711,7 +764,7 @@ function schedule(){
     const wrap=!!lp && horizon>=lp.end-1e-9 && S.anchor.pos0<lp.end-1e-9 && guard++<4;
     const lim=wrap?lp.end:horizon;
     while(S.evPtr<S.events.length && S.events[S.evPtr].pos<lim){ const e=S.events[S.evPtr++]; startVoice(e,at(e.pos)); }
-    while(S.clPtr<S.clicks.length && S.clicks[S.clPtr].pos<lim){ const c=S.clicks[S.clPtr++]; click(at(c.pos),c.accent); }
+    while(S.clPtr<S.clicks.length && S.clicks[S.clPtr].pos<lim){ const c=S.clicks[S.clPtr++]; click(at(c.pos),c.level); }
     if(wrap){
       const tEnd=at(lp.end);
       for(const v of S.voices) if(!v.released) releaseVoice(v,tEnd);
@@ -744,8 +797,8 @@ function silence(){
 }
 function countInBeats(pos){
   const st=S.steps[S.stepIdx]; const sm=osmd.Sheet.SourceMeasures[st.m]; const ts=sm.ActiveTimeSignature;
-  const num=ts.Numerator, den=ts.Denominator, full=num/den, compound=den===8&&num%3===0&&num>3;
-  const beat=compound?3/8:1/den;
+  const num=ts.Numerator, den=ts.Denominator, full=num/den;
+  const beat=1/den;
   const abs=sm.AbsoluteTimestamp.RealValue, dur=sm.Duration.RealValue;
   const start=(st.m===0&&dur<full-1e-9)?abs+dur-full:abs;   /* inizio "virtuale" della battuta (anacrusi) */
   let off=(pos===undefined?st.ts:pos)-start; if(off<0||off>=full) off=0;
@@ -760,11 +813,12 @@ async function play(){
   S.pos=S.steps[S.stepIdx].ts;
   const spw=240/S.bpm; let lead=.08; S.countUntil=0;
   if(S.countIn){
-    const {n,beat,off}=countInBeats(S.pos); const t0=ctx.currentTime+.08;
-    /* una battuta intera "vuota" + i movimenti che portano alla nota di partenza */
-    for(let k=0;k<n;k++) click(t0+k*beat*spw,k===0,true);
+    const {n,beat,off}=countInBeats(S.pos); const t0=ctx.currentTime+.08, sub=S.subdiv;
+    /* una battuta intera "vuota" + i movimenti che portano alla nota di partenza, con lo stesso schema di accenti e suddivisione */
+    const cl=(k,j,tt)=>{ if(j>0) click(tt,4,true); else { const lv=beatLevel(k); if(lv!==2) click(tt,lv,true); } };
+    for(let k=0;k<n;k++) for(let j=0;j<sub;j++) cl(k,j,t0+(k+j/sub)*beat*spw);
     const tb=t0+n*beat*spw;
-    for(let j=0;j*beat<off-1e-6;j++) click(tb+j*beat*spw,j===0,true);
+    for(let q=0;q*beat<off-1e-6;q++) for(let j=0;j<sub;j++){ if(q*beat+j*beat/sub>=off-1e-6) break; cl(q,j,tb+(q+j/sub)*beat*spw); }
     lead=.08+(n*beat+(wp(S.pos)-wp(S.pos-off)))*spw; S.countUntil=ctx.currentTime+lead;
   }
   S.anchor={t0:ctx.currentTime+lead,pos0:S.pos};
@@ -839,6 +893,7 @@ function bind(){
   $('bpmRange').addEventListener('input',e=>setBpm(parseFloat(e.target.value)));
   $('bpmReset').addEventListener('click',()=>{ S.bpmTouched=false; setBpm(S.origBpm); S.bpmTouched=false; });
   $('metro').addEventListener('click',()=>{ S.metro=!S.metro; $('metro').setAttribute('aria-pressed',String(S.metro)); });
+  $('subdiv').addEventListener('change',e=>{ S.subdiv=parseInt(e.target.value); onClickOptsChanged(); });
   $('metroVol').addEventListener('input',e=>{ S.metroVol=e.target.value/100; });
   $('vol').addEventListener('input',e=>{ S.vol=e.target.value/100; });
   $('srcInstr').addEventListener('change',e=>{ S.srcId=e.target.value; if(S.dstId==='file'&&!S.fileInstr) S.dstId=S.srcId; rebuild(); });
