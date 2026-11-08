@@ -717,10 +717,14 @@ function silence(){
   if(!ctx) return;
   S.voices.forEach(v=>releaseVoice(v,ctx.currentTime)); S.voices=[];
 }
-function countInBeats(){
+function countInBeats(pos){
   const st=S.steps[S.stepIdx]; const sm=osmd.Sheet.SourceMeasures[st.m]; const ts=sm.ActiveTimeSignature;
-  const num=ts.Numerator, den=ts.Denominator, compound=den===8&&num%3===0&&num>3;
-  const beat=compound?3/8:1/den; return {n:Math.round((num/den)/beat), beat};
+  const num=ts.Numerator, den=ts.Denominator, full=num/den, compound=den===8&&num%3===0&&num>3;
+  const beat=compound?3/8:1/den;
+  const abs=sm.AbsoluteTimestamp.RealValue, dur=sm.Duration.RealValue;
+  const start=(st.m===0&&dur<full-1e-9)?abs+dur-full:abs;   /* inizio "virtuale" della battuta (anacrusi) */
+  let off=(pos===undefined?st.ts:pos)-start; if(off<0||off>=full) off=0;
+  return {n:Math.round(full/beat), beat, off};
 }
 async function play(){
   if(!S.steps.length) return;
@@ -731,9 +735,12 @@ async function play(){
   S.pos=S.steps[S.stepIdx].ts;
   const spw=240/S.bpm; let lead=.08; S.countUntil=0;
   if(S.countIn){
-    const {n,beat}=countInBeats(); const t0=ctx.currentTime+.08;
+    const {n,beat,off}=countInBeats(S.pos); const t0=ctx.currentTime+.08;
+    /* una battuta intera "vuota" + i movimenti che portano alla nota di partenza */
     for(let k=0;k<n;k++) click(t0+k*beat*spw,k===0,true);
-    lead=.08+n*beat*spw; S.countUntil=ctx.currentTime+lead;
+    const tb=t0+n*beat*spw;
+    for(let j=0;j*beat<off-1e-6;j++) click(tb+j*beat*spw,j===0,true);
+    lead=.08+(n*beat+off)*spw; S.countUntil=ctx.currentTime+lead;
   }
   S.anchor={t0:ctx.currentTime+lead,pos0:S.pos};
   ptrsFrom(S.pos);
