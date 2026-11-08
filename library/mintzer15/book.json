@@ -10,6 +10,123 @@
    "tempo": 122,
    "meter": "4/4",
    "swing": true
+  },
+  {
+   "n": 2,
+   "title": "Swingin'",
+   "label": "2. Swingin' — Swing ♩≈150 · 4/4 · Sol · swing",
+   "file": "mintzer02.xml",
+   "tempo": 150,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 3,
+   "title": "Funky",
+   "label": "3. Funky — Funk (swing feel) ♩≈138 · 4/4 · Sol · swing",
+   "file": "mintzer03.xml",
+   "tempo": 138,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 4,
+   "title": "Swingin' 2",
+   "label": "4. Swingin' 2 — Swing ♩≈126 · 4/4 · Do · swing",
+   "file": "mintzer04.xml",
+   "tempo": 126,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 5,
+   "title": "Ballad",
+   "label": "5. Ballad — Ballad ♩≈56 · 4/4 · Re",
+   "file": "mintzer05.xml",
+   "tempo": 56,
+   "meter": "4/4",
+   "swing": false
+  },
+  {
+   "n": 6,
+   "title": "Blues 2",
+   "label": "6. Blues 2 — Shuffle ♩≈124 · 4/4 · Re · swing",
+   "file": "mintzer06.xml",
+   "tempo": 124,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 7,
+   "title": "Bossa",
+   "label": "7. Bossa — Bossa nova (even 8ths) ♩≈121 · 4/4 · Si♭",
+   "file": "mintzer07.xml",
+   "tempo": 121,
+   "meter": "4/4",
+   "swing": false
+  },
+  {
+   "n": 8,
+   "title": "Shuffle",
+   "label": "8. Shuffle — Med. up shuffle ♩≈127 · 4/4 · Do · swing",
+   "file": "mintzer08.xml",
+   "tempo": 127,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 9,
+   "title": "Funky 2",
+   "label": "9. Funky 2 — Funk (even 8ths) ♩≈120 · 4/4 · Do",
+   "file": "mintzer09.xml",
+   "tempo": 120,
+   "meter": "4/4",
+   "swing": false
+  },
+  {
+   "n": 10,
+   "title": "Waltz",
+   "label": "10. Waltz — Waltz ♩≈109 · 3/4 · Si♭",
+   "file": "mintzer10.xml",
+   "tempo": 109,
+   "meter": "3/4",
+   "swing": false
+  },
+  {
+   "n": 11,
+   "title": "Blues 3",
+   "label": "11. Blues 3 — Med. swing ♩≈124 · 4/4 · Sol · swing",
+   "file": "mintzer11.xml",
+   "tempo": 124,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 12,
+   "title": "Swing-o-Rama",
+   "label": "12. Swing-o-Rama — Med. up swing ♩≈130 · 4/4 · Mi♭ · swing",
+   "file": "mintzer12.xml",
+   "tempo": 130,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 13,
+   "title": "Paul's Blues",
+   "label": "13. Paul's Blues — Swing-funk ♩≈147 · 4/4 · Do · swing",
+   "file": "mintzer13.xml",
+   "tempo": 147,
+   "meter": "4/4",
+   "swing": true
+  },
+  {
+   "n": 14,
+   "title": "Malcom's Tune",
+   "label": "14. Malcom's Tune — Med. swing (2 feel) ♩≈131 · 4/4 · Do · swing",
+   "file": "mintzer14.xml",
+   "tempo": 131,
+   "meter": "4/4",
+   "swing": true
   }
  ]
 }
