@@ -160,6 +160,9 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
       <div class="group">
         <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
+      
+        <button class="switch" id="swingBtn" type="button" aria-pressed="false" title="Esegue le crome in levare con il «ritardo» tipico dello swing"><span class="dot"></span>Swing</button>
+        <select id="swingR" aria-label="Intensità dello swing" title="Rapporto tra la prima e la seconda croma"><option value="1.5">leggero 3:2</option><option value="2" selected>medio 2:1</option><option value="2.5">marcato 5:2</option></select>
       </div>
     </div>
     <p class="hint">Tocca una nota per partire da lì, o uno spazio vuoto della battuta per partire dall'inizio della battuta.</p>
@@ -249,7 +252,7 @@ const mod = (a,n) => ((a % n) + n) % n;
 const S = {
   srcDoc:null, srcT:{d:0,c:0}, fileInstr:null,
   srcId:'c', dstId:'c', octave:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
-  geo:[], rows:[], rowOf:[], rowFirstM:[], winRow:0, loop:null, loopMode:0, loopA:null, countIn:false, countUntil:0, loopEls:[],
+  geo:[], rows:[], rowOf:[], rowFirstM:[], winRow:0, loop:null, loopMode:0, loopA:null, countIn:false, swing:false, swingR:2, countUntil:0, loopEls:[],
   bpm:100, origBpm:100,
   steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
   pos:0, stepIdx:0, playing:false, anchor:{t0:0,pos0:0},
@@ -642,6 +645,25 @@ function setStepFromPos(pos, force){
 }
 
 /* ---------- Audio ---------- */
+/* swing: le crome in levare (posizione 1/2 del movimento) vengono ritardate; gli altri valori restano invariati */
+function setSwing(on){
+  const p=S.playing? currentPos():null;
+  S.swing=!!on; $('swingBtn').setAttribute('aria-pressed',String(S.swing));
+  if(p!==null){ S.anchor={t0:ctx.currentTime+.02,pos0:p}; ptrsFrom(p); S.voices.forEach(v=>releaseVoice(v,ctx.currentTime)); }
+}
+function wp(p){
+  if(!S.swing) return p;
+  const beats=p*4, b=Math.floor(beats+1e-9), u=beats-b;
+  if(Math.abs(u-.5)<1e-6){ const r1=S.swingR/(1+S.swingR); return (b+r1)/4; }
+  return p;
+}
+function up(w){
+  if(!S.swing) return w;
+  const beats=w*4, b=Math.floor(beats+1e-9), v=beats-b, r1=S.swingR/(1+S.swingR);
+  /* mappa inversa continua: [0,r1]->[0,.5], [r1,1]->[.5,1] */
+  const u=v<r1? v/(2*r1) : .5+(v-r1)/(2*(1-r1));
+  return (b+u)/4;
+}
 function ensureCtx(){
   if(ctx) return;
   ctx=new (window.AudioContext||window.webkitAudioContext)();
@@ -682,9 +704,10 @@ function schedule(){
   const lp=loopPos();
   let guard=0;
   for(;;){
-    const posNow=S.anchor.pos0+(now-S.anchor.t0)/spw;
-    let horizon=posNow+LOOKAHEAD/spw;
-    const at=p=>Math.max(now,S.anchor.t0+(p-S.anchor.pos0)*spw);
+    const w0=wp(S.anchor.pos0);
+    const posNow=up(w0+(now-S.anchor.t0)/spw);
+    let horizon=up(w0+(now-S.anchor.t0+LOOKAHEAD)/spw);
+    const at=p=>Math.max(now,S.anchor.t0+(wp(p)-w0)*spw);
     const wrap=!!lp && horizon>=lp.end-1e-9 && S.anchor.pos0<lp.end-1e-9 && guard++<4;
     const lim=wrap?lp.end:horizon;
     while(S.evPtr<S.events.length && S.events[S.evPtr].pos<lim){ const e=S.events[S.evPtr++]; startVoice(e,at(e.pos)); }
@@ -692,11 +715,13 @@ function schedule(){
     if(wrap){
       const tEnd=at(lp.end);
       for(const v of S.voices) if(!v.released) releaseVoice(v,tEnd);
-      S.anchor={t0:S.anchor.t0+(lp.end-S.anchor.pos0)*spw,pos0:lp.start};
+      S.anchor={t0:S.anchor.t0+(wp(lp.end)-w0)*spw,pos0:lp.start};
       ptrsFrom(lp.start); S.loopWrapAt=S.anchor.t0;
       continue;
     }
-    for(const v of S.voices) if(!v.released && v.end<=horizon) releaseVoice(v,at(v.end));
+    for(const v of S.voices){ if(v.released) continue;
+      const we=wp(v.ev.pos+v.ev.len), ws=wp(v.ev.pos), tEnd=S.anchor.t0+(we-.06*(we-ws)-w0)*spw;
+      if(tEnd<=now+LOOKAHEAD) releaseVoice(v,Math.max(now,tEnd)); }
     break;
   }
   S.voices=S.voices.filter(v=>!(v.released && v.stopAt<now-.1));
@@ -704,7 +729,7 @@ function schedule(){
 function currentPos(){
   if(!S.playing) return S.pos;
   if(S.countUntil && ctx.currentTime<S.countUntil) return S.anchor.pos0;
-  const p=S.anchor.pos0+(ctx.currentTime-S.anchor.t0)/(240/S.bpm);
+  const p=up(wp(S.anchor.pos0)+(ctx.currentTime-S.anchor.t0)/(240/S.bpm));
   const lp=loopPos();
   if(lp && p<lp.start-1e-9 && ctx.currentTime<S.anchor.t0) return lp.end+(p-lp.start);
   return p;
@@ -740,7 +765,7 @@ async function play(){
     for(let k=0;k<n;k++) click(t0+k*beat*spw,k===0,true);
     const tb=t0+n*beat*spw;
     for(let j=0;j*beat<off-1e-6;j++) click(tb+j*beat*spw,j===0,true);
-    lead=.08+(n*beat+off)*spw; S.countUntil=ctx.currentTime+lead;
+    lead=.08+(n*beat+(wp(S.pos)-wp(S.pos-off)))*spw; S.countUntil=ctx.currentTime+lead;
   }
   S.anchor={t0:ctx.currentTime+lead,pos0:S.pos};
   ptrsFrom(S.pos);
@@ -822,6 +847,8 @@ function bind(){
   $('view').addEventListener('change',e=>{ S.view=e.target.value; try{localStorage.setItem('lettore.view',S.view);}catch(_){} rebuild(); });
   $('perLine').addEventListener('change',e=>{ S.perLine=parseInt(e.target.value,10); try{localStorage.setItem('lettore.perLine',String(S.perLine));}catch(_){} rebuild(); });
   $('loopBtn').addEventListener('click',toggleLoop);
+  $('swingBtn').addEventListener('click',()=>setSwing(!S.swing));
+  $('swingR').addEventListener('change',e=>{ S.swingR=parseFloat(e.target.value); });
   $('countBtn').addEventListener('click',()=>{ S.countIn=!S.countIn; $('countBtn').setAttribute('aria-pressed',String(S.countIn)); });
   $('score').addEventListener('click',onScoreClick);
   let zt=null; $('zoom').addEventListener('input',e=>{ S.zoom=e.target.value/100; clearTimeout(zt); zt=setTimeout(rebuild,200); });
@@ -863,6 +890,7 @@ async function openPiece(i){
     const r=await fetch(LIB.book.dir+p.file); if(!r.ok) throw new Error('Brano non trovato ('+r.status+').');
     const text=await r.text();
     S.octave=0; S.bpmTouched=false;
+    setSwing(!!p.swing);
     parseSource(text); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
     try{ localStorage.setItem('lettore.last',LIB.book.id+'/'+i); }catch(e){}
   }catch(err){ say(err.message||String(err),8000); }

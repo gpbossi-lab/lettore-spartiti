@@ -1,0 +1,15 @@
+{
+ "id": "mintzer15",
+ "title": "Bob Mintzer — 15 Easy Jazz Blues Funk Etudes (Bb)",
+ "pieces": [
+  {
+   "n": 1,
+   "title": "Blues 1",
+   "label": "1. Blues 1 — Med. swing ♩≈122 · 4/4 · Do · swing",
+   "file": "mintzer01.xml",
+   "tempo": 122,
+   "meter": "4/4",
+   "swing": true
+  }
+ ]
+}
