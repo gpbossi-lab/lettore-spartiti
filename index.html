@@ -39,11 +39,13 @@
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4}
 #app{display:flex;flex-direction:column;height:100%}
+#work{flex:1;min-height:0;display:flex;flex-direction:row}
+#mainCol{flex:1;min-width:0;display:flex;flex-direction:column}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
-header.top h1{margin:0;font-size:18px;font-weight:600;text-wrap:balance}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top h1{margin:0;font-size:17px;font-weight:600;text-wrap:balance}
 header.top p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .picker{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -53,14 +55,37 @@ header.top p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
-#scoreWrap{position:relative;flex:1;min-height:0;margin:12px 20px;border:1px solid var(--line);border-radius:10px;background:var(--paper);overflow:hidden}
+#scoreWrap{position:relative;flex:1;min-height:0;margin:10px 12px 6px;border:1px solid var(--line);border-radius:10px;background:var(--paper);overflow:hidden}
 #score{height:100%;overflow:auto;position:relative;color:#111;padding:8px 0 12px}
 #status{position:absolute;left:12px;bottom:10px;max-width:calc(100% - 24px);padding:8px 12px;border-radius:8px;background:var(--ink);color:var(--panel);font-size:13px;display:none}
 #status.show{display:block}
 #dropHint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(11,110,117,.12);border:2px dashed var(--accent);border-radius:10px;font-weight:600;color:var(--accent);pointer-events:none}
 #scoreWrap.drag #dropHint{display:flex}
 
-#controls{background:var(--panel);border-top:1px solid var(--line);padding:12px 20px 14px;display:flex;flex-direction:column;gap:12px}
+#side{width:var(--sidew,360px);flex:none;min-width:0;overflow-y:auto;overflow-x:hidden;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+body.sidehid #side,body.sidehid #splitter{display:none}
+#splitter{width:7px;flex:none;cursor:col-resize;background:transparent;border-right:1px solid var(--line);margin-left:-1px;position:relative;touch-action:none}
+#splitter:hover,#splitter.drag{background:rgba(11,110,117,.18)}
+#splitter::after{content:"";position:absolute;left:2px;top:50%;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--line)}
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing #score{pointer-events:none}
+#side details.sec{border-bottom:1px solid var(--line)}
+#side details.sec>summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:flex;align-items:center;gap:8px;user-select:none}
+#side details.sec>summary::-webkit-details-marker{display:none}
+#side details.sec>summary::before{content:"▸";font-size:11px;transition:transform .12s}
+#side details.sec[open]>summary::before{transform:rotate(90deg)}
+#side details.sec>summary:hover{color:var(--accent)}
+#side .secbody{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px}
+#side .row{flex-direction:column;align-items:stretch;gap:12px}
+#side .group{gap:8px}
+#side select{max-width:100%;flex:1 1 100%;min-width:0}
+#side #clickOpts select{flex:1 1 auto}
+#side #accRow{margin-top:2px}
+#side input[type=range]{min-width:0;flex:1}
+#dock{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 12px 10px;background:var(--bg)}
+#dock .seekbox{min-width:160px}
+#dock .zoomb{display:flex;gap:4px;align-items:center}
+#dock .zoomb .btn{padding:5px 10px;font-size:14px}
 .row{display:flex;gap:16px 24px;flex-wrap:wrap;align-items:center}
 .group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .group > label.cap, .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -100,7 +125,9 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 #score img{pointer-events:none}
 .hint{margin:0;font-size:12.5px;color:var(--muted)}
 .switch.armed{border-color:var(--hl)}
-#editPanel{background:var(--panel);border-top:1px solid var(--line);padding:10px 20px;display:flex;flex-direction:column;gap:8px}
+#editPanel{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;gap:10px}
+#editPanel .row{flex-direction:column;align-items:stretch;gap:10px}
+#editPanel .row>strong{font-size:14px}
 #editPanel[hidden]{display:none}
 #editPanel .btn.sm{padding:5px 10px;font-size:14px;min-width:34px;justify-content:center}
 #editPanel .btn.t{font-family:var(--font-mono);font-size:13px}
@@ -111,8 +138,11 @@ body.editing #score{cursor:crosshair}
 @media (max-width:760px){
   html,body{height:auto}
   #app{height:auto;min-height:100%}
-  header.top,#controls{padding-left:16px;padding-right:16px}
-  #scoreWrap{margin:10px 16px;flex:none;height:300px}
+  #work{flex-direction:column}
+  #side{width:100%!important;border-right:0;order:2;overflow:visible}
+  #splitter{display:none}
+  #mainCol{order:1}
+  #scoreWrap{margin:10px 12px;flex:none;height:300px}
   select{max-width:100%}
 }
 @media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto !important} }
@@ -134,18 +164,15 @@ body.editing #score{cursor:crosshair}
         <select id="pieceSel" aria-label="Brano"></select>
         <button class="btn sm" id="pNext" type="button" aria-label="Brano successivo" title="Brano successivo">›</button>
       </div>
+      <button class="btn" id="sideBtn" type="button" aria-pressed="true" title="Mostra o nasconde la colonna dei comandi (tasto C)">☰ Comandi</button>
       <button class="btn" id="editBtn" type="button" aria-pressed="false" title="Correggi note, altezze e durate su una copia di lavoro: l'originale non viene toccato">✎ Modifica</button>
       <label class="btn" for="fileInput">Apri un altro spartito…</label>
       <input id="fileInput" type="file" accept=".musicxml,.xml,.mxl" hidden>
     </div>
   </header>
 
-  <main id="scoreWrap">
-    <div id="score" aria-label="Spartito"></div>
-    <div id="dropHint">Trascina qui un file MusicXML</div>
-    <div id="status" role="status"></div>
-  </main>
-
+  <div id="work">
+  <aside id="side" aria-label="Comandi">
   <section id="editPanel" hidden aria-label="Modifica del brano">
     <div class="row">
       <strong id="edTitle">✎ Versione di lavoro</strong>
@@ -175,21 +202,8 @@ body.editing #score{cursor:crosshair}
     <p class="hint">Tasti: ←/→ nota precedente/successiva (con Maiusc: battuta) · ↑/↓ altezza · +, −, N alterazione · 1–5 durata, . punto · R pausa · Canc elimina · I inserisci dopo · Ctrl+Z annulla.</p>
   </section>
 
-  <section id="controls" aria-label="Comandi">
-    <div class="row">
-      <div class="transport">
-        <button class="ibtn" id="btnStart" type="button" aria-label="Torna all'inizio" title="Torna all'inizio"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
-        <button class="ibtn" id="btnBack" type="button" aria-label="Indietro veloce (tieni premuto)" title="Indietro veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M11 6v12l-9-6zM22 6v12l-9-6z"/></svg></button>
-        <button class="ibtn play" id="btnPlay" type="button" aria-label="Riproduci" title="Riproduci / Pausa (barra spaziatrice)"><svg id="icoPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg id="icoPause" viewBox="0 0 24 24" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
-        <button class="ibtn" id="btnFwd" type="button" aria-label="Avanti veloce (tieni premuto)" title="Avanti veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M13 6v12l9-6zM2 6v12l9-6z"/></svg></button>
-      </div>
-      <div class="seekbox">
-        <input id="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Posizione nel brano">
-        <span id="barLabel" class="mono">Battuta 0</span>
-      </div>
-    </div>
 
-    <div class="row">
+  <details class="sec" id="secTempo" open><summary>Tempo e metronomo</summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="bpm">Tempo ♩ =</label>
         <input id="bpm" class="mono" type="number" min="30" max="240" step="1" value="88">
@@ -210,6 +224,8 @@ body.editing #score{cursor:crosshair}
         <span class="cap">Accenti</span>
         <span class="accrow" id="accRow" role="group" aria-label="Accenti dei beat della battuta"></span>
       </div>
+    </div></div></details>
+  <details class="sec" id="secEs" open><summary>Esercizio</summary><div class="secbody"><div class="row">
       <div class="group">
         <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
@@ -219,10 +235,8 @@ body.editing #score{cursor:crosshair}
       </div>
     </div>
     <p class="hint">Tocca una nota per partire da lì, o uno spazio vuoto della battuta per partire dall'inizio della battuta.</p>
-
-    <div class="divider"></div>
-
-    <div class="row">
+  </div></details>
+  <details class="sec" id="secTras" open><summary>Strumento e trasposizione</summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="srcInstr">Spartito scritto per</label>
         <select id="srcInstr"></select>
@@ -239,6 +253,9 @@ body.editing #score{cursor:crosshair}
           <option value="1">Una più acuta</option>
         </select>
       </div>
+    </div>
+    <p id="transInfo"></p></div></details>
+  <details class="sec" id="secVista"><summary>Vista</summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="view">Vista</label>
         <select id="view">
@@ -253,9 +270,31 @@ body.editing #score{cursor:crosshair}
         <label class="cap" for="zoom">Zoom</label>
         <input id="zoom" type="range" min="60" max="200" value="130" style="min-width:80px">
       </div>
-    </div>
-    <p id="transInfo"></p>
-  </section>
+    </div></div></details>
+  </aside>
+  <div id="splitter" role="separator" aria-orientation="vertical" aria-label="Ridimensiona i comandi" tabindex="0"></div>
+  <div id="mainCol">
+  <main id="scoreWrap">
+    <div id="score" aria-label="Spartito"></div>
+    <div id="dropHint">Trascina qui un file MusicXML</div>
+    <div id="status" role="status"></div>
+  </main>
+
+  <div id="dock" aria-label="Riproduzione">
+      <div class="transport">
+        <button class="ibtn" id="btnStart" type="button" aria-label="Torna all'inizio" title="Torna all'inizio"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+        <button class="ibtn" id="btnBack" type="button" aria-label="Indietro veloce (tieni premuto)" title="Indietro veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M11 6v12l-9-6zM22 6v12l-9-6z"/></svg></button>
+        <button class="ibtn play" id="btnPlay" type="button" aria-label="Riproduci" title="Riproduci / Pausa (barra spaziatrice)"><svg id="icoPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg id="icoPause" viewBox="0 0 24 24" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+        <button class="ibtn" id="btnFwd" type="button" aria-label="Avanti veloce (tieni premuto)" title="Avanti veloce: clic = una battuta, tieni premuto = scorri"><svg viewBox="0 0 24 24"><path d="M13 6v12l9-6zM2 6v12l9-6z"/></svg></button>
+      </div>
+      <div class="seekbox">
+        <input id="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Posizione nel brano">
+        <span id="barLabel" class="mono">Battuta 0</span>
+      </div>
+    <div class="zoomb"><button class="btn" id="zOut" type="button" title="Spartito più piccolo" aria-label="Riduci zoom">A−</button><button class="btn" id="zIn" type="button" title="Spartito più grande" aria-label="Aumenta zoom">A+</button></div>
+  </div>
+  </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.2.1/build/opensheetmusicdisplay.min.js"></script>
@@ -949,7 +988,7 @@ function bind(){
   $('swingR').addEventListener('change',e=>{ S.swingR=parseFloat(e.target.value); });
   $('countBtn').addEventListener('click',()=>{ S.countIn=!S.countIn; $('countBtn').setAttribute('aria-pressed',String(S.countIn)); });
   $('score').addEventListener('click',onScoreClick);
-  $('editBtn').addEventListener('click',edEnter);
+  $('editBtn').addEventListener('click',()=>{ edEnter(); $('side').scrollTop=0; if(document.body.classList.contains('sidehid')) $('sideBtn').click(); });
   $('editPanel').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; b.blur(); if(b.dataset.op) edOp(b.dataset.op); else if(b.id==='edCmp') edToggleOriginal(); else if(b.id==='edExport') edExport(); else if(b.id==='edDiscard') edDiscard(); else if(b.id==='edExit') edExit(); });
   $('edImport').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) edImport(f); e.target.value=''; });
   let zt=null; $('zoom').addEventListener('input',e=>{ S.zoom=e.target.value/100; clearTimeout(zt); zt=setTimeout(rebuild,200); });
@@ -972,8 +1011,44 @@ function bind(){
     else if(e.key==='m'||e.key==='M'){ $('metro').click(); }
     else if(e.key==='Escape'&&(S.loop||S.loopMode)){ toggleLoop(); }
   });
-  let rt=null;
-  window.addEventListener('resize',()=>{ if(S.view==='riga') return; clearTimeout(rt); rt=setTimeout(rebuild,250); });
+  let rt=null, lastW=0;
+  const relayout=()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const w=$('scoreWrap').clientWidth; if(w===lastW) return; lastW=w; if(S.view==='riga') return; rebuild(); },250); };
+  if(window.ResizeObserver){ lastW=$('scoreWrap').clientWidth; new ResizeObserver(relayout).observe($('scoreWrap')); }
+  else window.addEventListener('resize',relayout);
+  bindLayout();
+}
+
+/* ---------- Layout: colonna comandi ridimensionabile, sezioni, zoom ---------- */
+function bindLayout(){
+  const root=document.documentElement, side=$('side'), sp=$('splitter');
+  const ls=(k,v)=>{ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(_){} return null; };
+  const MIN=240, maxW=()=>Math.max(MIN,Math.min(640,window.innerWidth-320));
+  const setW=w=>{ w=Math.round(Math.max(MIN,Math.min(maxW(),w))); root.style.setProperty('--sidew',w+'px'); return w; };
+  const sw=parseInt(ls('lettore.sidew'),10); if(sw) setW(sw);
+  const setHidden=h=>{ document.body.classList.toggle('sidehid',h); $('sideBtn').setAttribute('aria-pressed',String(!h)); ls('lettore.sidehid',h?'1':'0'); };
+  if(ls('lettore.sidehid')==='1') setHidden(true);
+  $('sideBtn').addEventListener('click',e=>{ e.currentTarget.blur(); setHidden(!document.body.classList.contains('sidehid')); });
+  let drag=false;
+  sp.addEventListener('pointerdown',e=>{ drag=true; sp.setPointerCapture(e.pointerId); sp.classList.add('drag'); document.body.classList.add('resizing'); e.preventDefault(); });
+  sp.addEventListener('pointermove',e=>{ if(!drag) return; setW(e.clientX-side.getBoundingClientRect().left); });
+  const end=()=>{ if(!drag) return; drag=false; sp.classList.remove('drag'); document.body.classList.remove('resizing'); ls('lettore.sidew',String(Math.round(side.getBoundingClientRect().width))); };
+  sp.addEventListener('pointerup',end); sp.addEventListener('pointercancel',end);
+  sp.addEventListener('dblclick',()=>{ setW(360); ls('lettore.sidew','360'); });
+  sp.addEventListener('keydown',e=>{ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ const w=setW(side.getBoundingClientRect().width+(e.key==='ArrowRight'?24:-24)); ls('lettore.sidew',String(w)); e.preventDefault(); e.stopPropagation(); } });
+  window.addEventListener('resize',()=>{ const w=side.getBoundingClientRect().width; if(w>maxW()) setW(maxW()); });
+  document.querySelectorAll('#side details.sec').forEach(d=>{
+    const v=ls('lettore.sec.'+d.id); if(v==='0') d.open=false; else if(v==='1') d.open=true;
+    d.addEventListener('toggle',()=>ls('lettore.sec.'+d.id,d.open?'1':'0'));
+  });
+  const zoomBy=dz=>{ const z=$('zoom'); const v=Math.max(+z.min,Math.min(+z.max,(+z.value)+dz)); z.value=v; z.dispatchEvent(new Event('input')); ls('lettore.zoom',String(v)); };
+  $('zOut').addEventListener('click',e=>{ e.currentTarget.blur(); zoomBy(-10); });
+  $('zIn').addEventListener('click',e=>{ e.currentTarget.blur(); zoomBy(10); });
+  $('zoom').addEventListener('change',e=>ls('lettore.zoom',e.target.value));
+  const zs=parseInt(ls('lettore.zoom'),10); if(zs>=60&&zs<=200){ $('zoom').value=zs; S.zoom=zs/100; }
+  document.addEventListener('keydown',e=>{
+    const tag=(document.activeElement||{}).tagName;
+    if((e.key==='c'||e.key==='C')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA'&&!ED.on){ $('sideBtn').click(); }
+  });
 }
 
 /* ---------- Modifica: versione di lavoro, mai sull'originale ---------- */
