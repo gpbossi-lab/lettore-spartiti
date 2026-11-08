@@ -9,6 +9,14 @@
    "pieces_available": 10
   },
   {
+   "id": "lacour2",
+   "title": "Lacour — 50 Études faciles et progressives, vol. 2",
+   "path": "lacour2/",
+   "author": "Guy Lacour",
+   "instrument": "Sax tenore",
+   "pieces_available": 1
+  },
+  {
    "id": "mintzer15",
    "title": "Bob Mintzer — 15 Easy Jazz Blues Funk Etudes (Bb)",
    "path": "mintzer15/",

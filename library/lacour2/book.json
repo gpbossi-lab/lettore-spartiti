@@ -1,0 +1,14 @@
+{
+ "id": "lacour2",
+ "title": "Lacour — 50 Études faciles et progressives, vol. 2",
+ "pieces": [
+  {
+   "n": 26,
+   "title": "Étude n. 26",
+   "label": "Étude 26 — Allegretto ♩=116 · 3/4 · Do",
+   "file": "etude26.xml",
+   "tempo": 116,
+   "meter": "3/4"
+  }
+ ]
+}
