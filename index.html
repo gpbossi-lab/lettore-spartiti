@@ -77,7 +77,7 @@ body.resizing #score{pointer-events:none}
 #side details.sec>summary{cursor:pointer;list-style:none;padding:11px 14px;color:var(--muted);display:flex;align-items:center;gap:8px;user-select:none}
 #side details.sec>summary::-webkit-details-marker{display:none}
 #side details.sec[open]>summary{color:var(--accent)}
-#side details.sec>summary svg{flex:none;width:27px;height:27px}
+#side details.sec>summary svg{flex:none;width:28px;height:28px}
 #side details.sec>summary:hover{color:var(--accent)}
 #side .secbody{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px}
 #side .row{flex-direction:column;align-items:stretch;gap:12px}
@@ -207,7 +207,7 @@ body.editing #score{cursor:crosshair}
   </section>
 
 
-  <details class="sec" id="secTempo" open><summary title="Tempo e metronomo" aria-label="Tempo e metronomo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21 10 3h4l2 18z"/><path d="M6 21h12"/><path d="M12 17 16.5 6.5"/><rect x="14" y="8.5" width="3.4" height="2.6" rx=".6" transform="rotate(-22 15.7 9.8)" fill="currentColor"/></svg></summary><div class="secbody"><div class="row">
+  <details class="sec" id="secTempo" open><summary title="Tempo e metronomo" aria-label="Tempo e metronomo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.2 3.2h5.6l4.4 17.6H4.8z" fill="currentColor" fill-opacity=".10"/><path d="M3.5 20.8h17"/><path d="M12 17.2 16.2 4.6"/><rect x="13.3" y="7.4" width="4" height="3" rx=".7" fill="currentColor" stroke="none" transform="rotate(-18 15.3 8.9)"/><circle cx="12" cy="17.2" r="1.1" fill="currentColor" stroke="none"/><path d="M7.9 15.2h2.1M14 15.2h2.1" stroke-width="1.2"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="bpm">Tempo ♩ =</label>
         <input id="bpm" class="mono" type="number" min="30" max="240" step="1" value="88">
@@ -229,7 +229,7 @@ body.editing #score{cursor:crosshair}
         <span class="accrow" id="accRow" role="group" aria-label="Accenti dei beat della battuta"></span>
       </div>
     </div></div></details>
-  <details class="sec" id="secEs" open><summary title="Esercizio" aria-label="Esercizio"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5 21 6.5 17 10.5"/><path d="M3 11V10a3.5 3.5 0 0 1 3.5-3.5H21"/><path d="M7 21.5 3 17.5 7 13.5"/><path d="M21 13v1a3.5 3.5 0 0 1-3.5 3.5H3"/></svg></summary><div class="secbody"><div class="row">
+  <details class="sec" id="secEs" open><summary title="Esercizio" aria-label="Esercizio"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v16" stroke-width="1.6"/><rect x="13.2" y="4" width="3.2" height="16" rx=".5" fill="currentColor" stroke="none"/><circle cx="5.6" cy="9.2" r="1.5" fill="currentColor" stroke="none"/><circle cx="5.6" cy="14.8" r="1.5" fill="currentColor" stroke="none"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Tocca due battute: il passaggio compreso viene ripetuto"><span class="dot"></span><span id="loopTxt">Ripeti passaggio</span></button>
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Prima di partire il metronomo scandisce una battuta"><span class="dot"></span>Attacco con conteggio</button>
@@ -240,7 +240,7 @@ body.editing #score{cursor:crosshair}
     </div>
     <p class="hint">Tocca una nota per partire da lì, o uno spazio vuoto della battuta per partire dall'inizio della battuta.</p>
   </div></details>
-  <details class="sec" id="secTras" open><summary title="Strumento e trasposizione" aria-label="Strumento e trasposizione"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5 9 5.5V17a4 4 0 0 0 8 0v-4"/><path d="M14.5 12.5h5.5"/><circle cx="9" cy="8.5" r=".9" fill="currentColor"/><circle cx="9" cy="11.5" r=".9" fill="currentColor"/><circle cx="9" cy="14.5" r=".9" fill="currentColor"/></svg></summary><div class="secbody"><div class="row">
+  <details class="sec" id="secTras" open><summary title="Strumento e trasposizione" aria-label="Strumento e trasposizione"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.8 8.2 4.3C9.6 4.7 10.8 5.6 11.4 7l.4 9.2c.1 1.4.8 2.1 1.8 1.9 1-.2 1.5-1.1 1.6-2.3l.2-5.6-1-1.2h6.8l-1.2 1.4-1 .8-.2 5.3c-.1 3.7-2.4 5.8-5.4 5.8-3.2 0-5.3-2.1-5.3-5.3L8.2 6.6 3.8 5.4z" fill="currentColor" stroke-width=".8"/><circle cx="10" cy="8.6" r=".95" fill="var(--panel)" stroke="none"/><circle cx="10" cy="11.4" r=".95" fill="var(--panel)" stroke="none"/><circle cx="10" cy="14.2" r=".95" fill="var(--panel)" stroke="none"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="srcInstr">Spartito scritto per</label>
         <select id="srcInstr"></select>
@@ -259,7 +259,7 @@ body.editing #score{cursor:crosshair}
       </div>
     </div>
     <p id="transInfo"></p></div></details>
-  <details class="sec" id="secVista"><summary title="Vista" aria-label="Vista"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6.5" cy="14.5" r="3.8"/><circle cx="17.5" cy="14.5" r="3.8"/><path d="M10.3 14h3.4"/><path d="M2.7 14.5 4.5 7"/><path d="M21.3 14.5 19.5 7"/></svg></summary><div class="secbody"><div class="row">
+  <details class="sec" id="secVista"><summary title="Vista" aria-label="Vista"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6.6" cy="14.4" r="4.2"/><circle cx="17.4" cy="14.4" r="4.2"/><path d="M10.8 13.6c.8-.9 1.6-.9 2.4 0"/><path d="M2.5 13.6 1.9 8.4"/><path d="M21.5 13.6 22.1 8.4"/></svg></summary><div class="secbody"><div class="row">
       <div class="group">
         <label class="cap" for="view">Vista</label>
         <select id="view">
@@ -397,6 +397,25 @@ function transposeDoc(doc, dd, dc){
       if(!alterEl){ alterEl=doc.createElement('alter'); stepEl.after(alterEl); }
       alterEl.textContent=String(nalter);
     } else if(alterEl){ alterEl.remove(); }
+  });
+  /* sigle d'accordo: fondamentale e basso seguono la stessa trasposizione delle note */
+  const shiftChordNote=(par,stepTag,alterTag)=>{
+    const stepEl=par.querySelector(stepTag); if(!stepEl) return;
+    let alterEl=par.querySelector(alterTag);
+    const alter=alterEl?Math.round(parseFloat(alterEl.textContent)||0):0;
+    const idx=STEP_IDX[stepEl.textContent.trim()]; if(idx===undefined) return;
+    const nidx=mod(idx+dd,7), npc=mod(STEP_SEMI[idx]+alter+dc,12);
+    let nalter=mod(npc-STEP_SEMI[nidx]+6,12)-6, nstep=STEPS[nidx];
+    if(Math.abs(nalter)>1){ const [s,a]=table[npc]; nstep=s; nalter=a; }
+    stepEl.textContent=nstep;
+    if(nalter!==0){
+      if(!alterEl){ alterEl=doc.createElement(alterTag); stepEl.after(alterEl); }
+      alterEl.textContent=String(nalter);
+    } else if(alterEl){ alterEl.remove(); }
+  };
+  doc.querySelectorAll('harmony').forEach(h=>{
+    const r=h.querySelector('root'); if(r) shiftChordNote(r,'root-step','root-alter');
+    const b=h.querySelector('bass'); if(b) shiftChordNote(b,'bass-step','bass-alter');
   });
   doc.querySelectorAll('transpose').forEach(e=>e.remove());
   doc.querySelectorAll('note > accidental').forEach(e=>e.remove());
