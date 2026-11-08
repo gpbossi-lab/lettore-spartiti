@@ -81,6 +81,126 @@
    "file": "etude10.xml",
    "tempo": 112,
    "meter": "2/4"
+  },
+  {
+   "n": 11,
+   "title": "Étude n. 11",
+   "label": "Étude 11 — ♩=104 · 2/4 · 1♭",
+   "file": "etude11.xml",
+   "tempo": 104,
+   "meter": "2/4"
+  },
+  {
+   "n": 12,
+   "title": "Étude n. 12",
+   "label": "Étude 12 — ♩=120 · 4/4 · 1♭",
+   "file": "etude12.xml",
+   "tempo": 120,
+   "meter": "4/4"
+  },
+  {
+   "n": 13,
+   "title": "Étude n. 13",
+   "label": "Étude 13 — ♩=104 · 4/4 · nessuna alter.",
+   "file": "etude13.xml",
+   "tempo": 104,
+   "meter": "4/4"
+  },
+  {
+   "n": 14,
+   "title": "Étude n. 14",
+   "label": "Étude 14 — ♩=132-144 · 3/4 · nessuna alter.",
+   "file": "etude14.xml",
+   "tempo": 138,
+   "meter": "3/4"
+  },
+  {
+   "n": 15,
+   "title": "Étude n. 15",
+   "label": "Étude 15 — ♩.=63 · 6/8 · 1♯",
+   "file": "etude15.xml",
+   "tempo": 94.5,
+   "meter": "6/8"
+  },
+  {
+   "n": 16,
+   "title": "Étude n. 16",
+   "label": "Étude 16 — ♩=92 · 3/4 · 1♭",
+   "file": "etude16.xml",
+   "tempo": 92,
+   "meter": "3/4"
+  },
+  {
+   "n": 17,
+   "title": "Étude n. 17",
+   "label": "Étude 17 — ♩.=84 · 6/8 · nessuna alter.",
+   "file": "etude17.xml",
+   "tempo": 126,
+   "meter": "6/8"
+  },
+  {
+   "n": 18,
+   "title": "Étude n. 18",
+   "label": "Étude 18 — Tempo di valzer ♩=138 · 3/4 · 1♯",
+   "file": "etude18.xml",
+   "tempo": 138,
+   "meter": "3/4"
+  },
+  {
+   "n": 19,
+   "title": "Étude n. 19",
+   "label": "Étude 19 — Andantino ♩.=66 · 6/8 · 2♯",
+   "file": "etude19.xml",
+   "tempo": 99,
+   "meter": "6/8"
+  },
+  {
+   "n": 20,
+   "title": "Étude n. 20",
+   "label": "Étude 20 — Allegretto ♩=104 · 4/4 · 2♭",
+   "file": "etude20.xml",
+   "tempo": 104,
+   "meter": "4/4"
+  },
+  {
+   "n": 21,
+   "title": "Étude n. 21",
+   "label": "Étude 21 — ♩=104 · 2/4 · 1♯",
+   "file": "etude21.xml",
+   "tempo": 104,
+   "meter": "2/4"
+  },
+  {
+   "n": 22,
+   "title": "Étude n. 22",
+   "label": "Étude 22 — Allegro molto ♩=138 · 3/4 · 3♯ · con D.C. (non eseguito)",
+   "file": "etude22.xml",
+   "tempo": 138,
+   "meter": "3/4"
+  },
+  {
+   "n": 23,
+   "title": "Étude n. 23",
+   "label": "Étude 23 — Allegro moderato ♩.=120 · 6/8 · 1♯",
+   "file": "etude23.xml",
+   "tempo": 180,
+   "meter": "6/8"
+  },
+  {
+   "n": 24,
+   "title": "Étude n. 24",
+   "label": "Étude 24 — Allegro ♩=108 · 2/4 · nessuna alter.",
+   "file": "etude24.xml",
+   "tempo": 108,
+   "meter": "2/4"
+  },
+  {
+   "n": 25,
+   "title": "Étude n. 25",
+   "label": "Étude 25 — Allegro ♩.=132 · 6/8 · 1♯",
+   "file": "etude25.xml",
+   "tempo": 198,
+   "meter": "6/8"
   }
  ]
 }
