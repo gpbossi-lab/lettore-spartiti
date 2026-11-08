@@ -150,6 +150,37 @@ body.editing #score{cursor:crosshair}
   select{max-width:100%}
 }
 @media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto !important} }
+
+#trPanel{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+#trPanel[hidden]{display:none}
+.trbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.trbar .trsp{flex:1}
+.trmuted{color:var(--muted);font-size:13px}
+.trnav{display:inline-flex;align-items:center;gap:6px}
+.trbody{flex:1;min-height:0;display:flex;gap:10px;padding:10px}
+.trleft{flex:1.25;min-width:0;display:flex;flex-direction:column;gap:6px}
+.trright{flex:1;min-width:320px;display:flex;flex-direction:column;gap:8px;min-height:0}
+#trStrip{width:100%;height:auto;max-height:34vh;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer;display:none}
+.trpagewrap{flex:1;min-height:0;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:8px}
+#trPage{width:100%;height:auto;display:block;cursor:pointer}
+.trform{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px;color:var(--muted)}
+.trform label{display:flex;flex-direction:column;gap:2px}
+.trform input[type=text],.trform input[type=number],.trform select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px}
+.trform #trTitle,.trform #trComp{width:13em}.trform #trBpm{width:5em}.trform #trWords{width:9em}
+.trform .trck{flex-direction:row;align-items:center;gap:6px;align-self:flex-end;padding-bottom:6px}
+#trText{flex:1;min-height:160px;resize:none;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-family:var(--font-mono);font-size:14px;line-height:1.55;white-space:pre;overflow:auto}
+.trmsg{font-size:13px;padding:6px 10px;border-radius:6px;min-height:1.6em;background:var(--panel);border:1px solid var(--line)}
+.trmsg.ok{border-color:#2e8b57;color:#1e6b41}.trmsg.err{border-color:var(--hl);color:var(--hl)}.trmsg.warn{border-color:#c08a00}
+.trmsg a{color:inherit;font-weight:600}
+.trhelp{font-size:13px;color:var(--muted);max-height:28vh;overflow:auto}
+.trhelp summary{cursor:pointer;color:var(--accent)}
+.trhelp p{margin:6px 0}.trhelp code{font-family:var(--font-mono);background:var(--bg);padding:0 3px;border-radius:3px}
+.trtools{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.trtools .btn.sm{padding:4px 9px}
+.trtools .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#trBack{position:fixed;right:16px;bottom:84px;z-index:55;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#trBack[hidden]{display:none}
+@media (max-width:900px){.trbody{flex-direction:column;overflow:auto}.trright{min-width:0}.trleft{flex:none}}
 </style>
 </head>
 <body>
@@ -170,11 +201,68 @@ body.editing #score{cursor:crosshair}
       </div>
       <button class="btn" id="sideBtn" type="button" aria-pressed="true" title="Mostra o nasconde la colonna dei comandi (tasto C)">☰ Comandi</button>
       <button class="btn" id="editBtn" type="button" aria-pressed="false" title="Correggi note, altezze e durate su una copia di lavoro: l'originale non viene toccato">✎ Modifica</button>
+      <button class="btn" id="trBtn" type="button" title="Trascrivi un brano da un PDF o da un'immagine">✍ Trascrivi</button>
       <label class="btn" for="fileInput">Apri un altro spartito…</label>
       <input id="fileInput" type="file" accept=".musicxml,.xml,.mxl" hidden>
     </div>
   </header>
 
+
+<section id="trPanel" hidden aria-label="Trascrizione da PDF">
+  <div class="trbar">
+    <strong>Trascrizione</strong>
+    <label class="btn" for="trFile">📄 Carica PDF o immagine…</label><input id="trFile" type="file" accept=".pdf,image/*" hidden>
+    <span id="trFileName" class="trmuted"></span>
+    <span class="trnav"><button class="btn sm" id="trPrev" type="button" aria-label="Pagina precedente">‹</button><span id="trPgLbl" class="trmuted">—</span><button class="btn sm" id="trNext" type="button" aria-label="Pagina successiva">›</button></span>
+    <button class="btn" id="trSkel" type="button" title="Crea una riga per ogni battuta riconosciuta nella pagina">Prepara le battute</button>
+    <label class="btn" for="trXml" title="Parti da un MusicXML (per esempio prodotto da un programma di riconoscimento) e correggilo qui">Parti da un MusicXML…</label><input id="trXml" type="file" accept=".musicxml,.xml,.mxl" hidden>
+    <button class="btn" id="trFromOpen" type="button" title="Converte in testo il brano aperto nel lettore, per correggerlo qui">Parti dal brano aperto</button>
+    <span class="trsp"></span>
+    <button class="btn primary" id="trTry" type="button" title="Mostra e fa suonare la trascrizione nel lettore">▶ Prova nel lettore</button>
+    <button class="btn" id="trDl" type="button">Scarica MusicXML</button>
+    <button class="btn" id="trClose" type="button">Chiudi</button>
+  </div>
+  <div class="trbody">
+    <div class="trleft">
+      <div class="trsys"><span id="trSysLbl" class="trmuted"></span></div>
+      <div id="trTools" class="trtools" role="toolbar" aria-label="Inserimento a tocco">
+        <span class="trmuted">Tocco sul rigo:</span>
+        <button class="btn sm" data-tap="note" aria-pressed="true" title="Il tocco inserisce la nota all'altezza toccata">Nota</button><button class="btn sm" data-tap="rest" aria-pressed="false" title="Il tocco inserisce una pausa">Pausa</button><button class="btn sm" data-tap="bar" aria-pressed="false" title="Il tocco porta alla riga della battuta">Vai</button>
+        <span class="trmuted">Durata:</span>
+        <button class="btn sm" data-dur="1/2" aria-pressed="false" title="Semicroma (con 1 = croma)">½</button><button class="btn sm" data-dur="1" aria-pressed="true">1</button><button class="btn sm" data-dur="2" aria-pressed="false">2</button><button class="btn sm" data-dur="3" aria-pressed="false">3</button><button class="btn sm" data-dur="4" aria-pressed="false">4</button><button class="btn sm" data-dur="6" aria-pressed="false">6</button><button class="btn sm" data-dur="8" aria-pressed="false">8</button>
+        <span class="trmuted">Ultima nota:</span>
+        <button class="btn sm" data-acc="#" title="Diesis">♯</button><button class="btn sm" data-acc="b" title="Bemolle">♭</button><button class="btn sm" data-acc="n" title="Bequadro">♮</button><button class="btn sm" data-act="tie" title="Legatura di valore con la successiva">~</button><button class="btn sm" data-act="undo" title="Annulla l'ultimo inserimento">↶</button>
+      </div>
+      <canvas id="trStrip" title="Tocca una testa di nota: viene scritta nella battuta, con la durata scelta"></canvas>
+      <div class="trpagewrap"><canvas id="trPage" title="Tocca un rigo per selezionarlo"></canvas></div>
+    </div>
+    <div class="trright">
+      <div class="trform">
+        <label>Titolo<input id="trTitle" type="text"></label>
+        <label>Autore<input id="trComp" type="text"></label>
+        <label>Scritto per<select id="trInstr"></select></label>
+        <label>Tonalità<select id="trKey"></select></label>
+        <label>Metro<input id="trTime" type="text" value="4/4" size="4"></label>
+        <label>Unità «1» =<select id="trUnit"><option value="8">croma</option><option value="16">semicroma</option></select></label>
+        <label>♩ =<input id="trBpm" type="number" min="20" max="300" value="100"></label>
+        <label>Indicazione<input id="trWords" type="text" placeholder="Allegretto, Swing…"></label>
+        <label class="trck"><input id="trSwing" type="checkbox"> Swing</label>
+      </div>
+      <textarea id="trText" spellcheck="false" placeholder="Una riga per battuta, per esempio:&#10;1 | C7 | G4:2 A4:1 B4:1 D5:1 B4:1 C5:1 D5:1&#10;2 | | E5:2 r:2 r:4"></textarea>
+      <div id="trMsg" class="trmsg" role="status"></div>
+      <details class="trhelp"><summary>Come si scrive</summary>
+        <p><b>Una riga per battuta</b>: <code>numero | accordi | note</code>. Numero e accordi si possono omettere. Le righe che iniziano con <code>#</code> sono note personali.</p>
+        <p><b>Nota</b> = nome inglese + ottava (il Do centrale è <code>C4</code>) + <code>:</code> + durata in unità: <code>G4:2</code>. Con «1 = croma»: 1 croma, 2 semiminima, 3 semiminima puntata, 4 minima, 8 semibreve, <code>1/2</code> semicroma. Pausa: <code>r:2</code>.</p>
+        <p><b>Alterazioni</b>: <code>F#4</code>, <code>Bb4</code>, bequadro <code>Bn4</code>. Quelle in chiave si mettono da sole; un'alterazione vale fino alla fine della battuta, come sullo spartito.</p>
+        <p><b>Legature</b>: <code>~</code> dopo la nota la lega alla successiva (valore); <code>(</code> prima della prima nota e <code>)</code> dopo l'ultima per la legatura di frase: <code>(C5:1 D5:1 E5:2)</code>.</p>
+        <p><b>Segni</b> dopo la durata: <code>'</code> staccato, <code>_</code> tenuto, <code>&gt;</code> accento, <code>^</code> marcato, <code>*</code> corona, <code>,</code> respiro. Terzina: <code>T(C5 D5 E5)</code> (tre note nel tempo di due unità), <code>TQ(…)</code> terzina di semiminime.</p>
+        <p><b>Altro</b> (nella parte delle note): <code>D=p</code> dinamica, <code>W&lt;</code> <code>W&gt;</code> <code>W/</code> forcella e sua fine, <code>X=a_tempo</code> testo, <code>R=A</code> lettera di prova, <code>||</code> doppia barra, <code>|]</code> barra finale, <code>|:</code> <code>:|</code> ritornelli, <code>K=-1</code> cambio di tonalità, <code>M=3/4</code> cambio di metro.</p>
+        <p><b>Accordi</b>: <code>C7</code>, <code>Dmi7</code>, <code>Bbmaj7</code>, <code>A7#5</code>, <code>G7/B</code>; <code>F7@4</code> = a metà della battuta (dopo 4 unità).</p>
+      </details>
+    </div>
+  </div>
+</section>
+<button class="btn primary" id="trBack" type="button" hidden>↩ Torna alla trascrizione</button>
   <div id="work">
   <aside id="side" aria-label="Comandi">
   <section id="editPanel" hidden aria-label="Modifica del brano">
@@ -1552,14 +1640,575 @@ async function loadDefault(){
   parseSource(DEFAULT_XML); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
 }
 
+/* ---------- Trascrizione da PDF ---------- */
+const TR={pages:[],page:0,sel:null,bars:{},pdfLib:null,file:'',busy:false,dur:'1',tap:'note',hist:[],dots:[]};
+const TR_DIV=24;               // divisioni per semiminima
+const TR_KINDS={'':'major','mi':'minor','m':'minor','min':'minor','-':'minor','mi7':'minor-seventh','m7':'minor-seventh','min7':'minor-seventh','-7':'minor-seventh','7':'dominant','maj7':'major-seventh','ma7':'major-seventh','9':'dominant-ninth','11':'dominant-11th','13':'dominant-13th','6':'major-sixth','mi6':'minor-sixth','m6':'minor-sixth','dim':'diminished','o':'diminished','dim7':'diminished-seventh','o7':'diminished-seventh','mi7b5':'half-diminished','m7b5':'half-diminished','ø':'half-diminished','sus':'suspended-fourth','sus4':'suspended-fourth','aug':'augmented','+':'augmented','mi9':'minor-ninth','m9':'minor-ninth','maj9':'major-ninth','69':'major-sixth','6/9':'major-sixth','mimaj7':'minor-major','mi13':'minor-13th','mi11':'minor-11th','m11':'minor-11th'};
+const TR_KIND_OUT={'major':'','minor':'mi','minor-seventh':'mi7','dominant':'7','major-seventh':'maj7','dominant-ninth':'9','dominant-11th':'11','dominant-13th':'13','major-sixth':'6','minor-sixth':'mi6','diminished':'dim','diminished-seventh':'dim7','half-diminished':'mi7b5','suspended-fourth':'sus','augmented':'aug','minor-ninth':'mi9','major-ninth':'maj9','minor-major':'mimaj7','minor-13th':'mi13','minor-11th':'mi11'};
+const TR_TYPES=[[96,'whole',0],[72,'half',1],[48,'half',0],[36,'quarter',1],[24,'quarter',0],[18,'eighth',1],[12,'eighth',0],[9,'16th',1],[6,'16th',0],[3,'32nd',0]];
+const TR_SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const trEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function trKeySig(f){ const d={C:0,D:0,E:0,F:0,G:0,A:0,B:0}; if(f>0) for(const s of 'FCGDAEB'.slice(0,f)) d[s]=1; if(f<0) for(const s of 'BEADGCF'.slice(0,-f)) d[s]=-1; return d; }
+function trSplit(n){ const out=[]; let guard=0; while(n>0&&guard++<40){ const t=TR_TYPES.find(x=>x[0]<=n); if(!t) return null; out.push(t); n-=t[0]; } return n===0?out:null; }
+function trFrac(s){ const m=/^(\d+)(?:\/(\d+))?$/.exec(s)||/^(\d*)\.(\d+)$/.exec(s); if(!m) return NaN; if(s.includes('.')) return parseFloat(s); return m[2]?parseInt(m[1],10)/parseInt(m[2],10):parseInt(m[1],10); }
+class TrErr extends Error{ constructor(line,msg){ super(msg); this.line=line; } }
+
+/* testo -> struttura */
+function trParse(text,hdr){
+  const unitDiv=96/hdr.unit; let [tb,tbt]=hdr.time.split('/').map(Number);
+  if(!(tb>0&&tbt>0)) throw new TrErr(0,'Metro non valido: scrivi per esempio 4/4 o 3/4.');
+  let key=hdr.key, auto=0; const bars=[]; const lines=text.split('\n');
+  lines.forEach((raw,li)=>{
+    const ln=raw.replace(/\s+$/,''); if(!ln.trim()||ln.trim().startsWith('#')) return;
+    let num=null, chords=[], nt=ln;
+    const parts=ln.split('|');
+    if(/^\s*\d+p?\s*\|/.test(ln) && parts.length>=3){ num=parts[0].trim(); chords=parts[1].trim().split(/\s+/).filter(Boolean); nt=parts.slice(2).join('|'); }
+    else if(/^\s*\d+p?\s*\|/.test(ln)){ num=parts[0].trim(); nt=parts.slice(1).join('|'); }
+    else if(/^\s*\|/.test(ln) && parts.length>=3){ chords=parts[1].trim().split(/\s+/).filter(Boolean); nt=parts.slice(2).join('|'); }
+    // il simbolo di barra finale "|]" e "||" restano token: ricomponi
+    nt=nt.replace(/(^|\s)\]/g,'$1|]');
+    if(num===null){ auto++; num=String(auto); } else if(!num.endsWith('p')) auto=parseInt(num,10);
+    const toks=nt.match(/TQ?\([^)]*\)|\S+/g)||[];
+    const b={num,line:li,chords,items:[],dirs:[],rs:false,re:false,rb:null,keychg:null,timechg:null};
+    let pos=0; const state={};
+    for(const t of toks){
+      if(t==='|:'){ b.rs=true; continue; } if(t===':|'){ b.re=true; continue; }
+      if(t==='||'||t==='|]'){ b.rb=t; continue; }
+      let m;
+      if((m=/^K=(-?\d+)$/.exec(t))){ key=parseInt(m[1],10); b.keychg=key; continue; }
+      if((m=/^M=(\d+)\/(\d+)$/.exec(t))){ tb=+m[1]; tbt=+m[2]; b.timechg=[tb,tbt]; continue; }
+      if((m=/^D=(\w+)$/.exec(t))){ b.dirs.push([pos,'dyn',m[1]]); continue; }
+      if((m=/^W([<>/])$/.exec(t))){ b.dirs.push([pos,'wedge',m[1]]); continue; }
+      if((m=/^([RX])=(.+)$/.exec(t))){ b.dirs.push([pos,m[1]==='R'?'reh':'words',m[2].replace(/_/g,' ')]); continue; }
+      if(t.startsWith('T')&&t.includes('(')){
+        const q=t[1]==='Q'; const ps=t.slice(q?3:2,-1).trim().split(/\s+/).filter(Boolean);
+        if(ps.length<2) throw new TrErr(li,`Battuta ${num}: terzina vuota (${t}).`);
+        const total=q?48:2*unitDiv, each=total/ps.length;
+        if(each!==Math.round(each)) throw new TrErr(li,`Battuta ${num}: gruppo irregolare non supportato (${t}).`);
+        ps.forEach((p,j)=>{ b.items.push({s:pos,l:each,p:p==='r'?null:p,tie:false,trip:q?'Q':'U',tn:ps.length,tp:j===0?'start':(j===ps.length-1?'stop':null),marks:'',slS:false,slE:false}); pos+=each; });
+        continue;
+      }
+      m=/^(\()?([^:~()]+):([0-9./]+)(['>^_*,]*)(\))?(~)?$/.exec(t);
+      if(!m) throw new TrErr(li,`Battuta ${num}: non capisco «${t}». Scrivi nota e durata, per esempio G4:2 o r:1.`);
+      const d=trFrac(m[3]); const L=d*unitDiv;
+      if(!(L>0)||L!==Math.round(L)) throw new TrErr(li,`Battuta ${num}: durata «${m[3]}» non rappresentabile con l'unità scelta.`);
+      const p=m[2]==='r'?null:m[2];
+      b.items.push({s:pos,l:L,p,tie:!!m[6],trip:null,marks:m[4]||'',slS:!!m[1],slE:!!m[5]}); pos+=L;
+    }
+    const full=96*tb/tbt;
+    if(!b.items.length){ b.items.push({s:0,l:full,p:null,tie:false,trip:null,marks:'',slS:false,slE:false}); b.empty=true; pos=full; }
+    if(pos!==full && !num.endsWith('p')) throw new TrErr(li,`Battuta ${num}: le durate fanno ${+(pos/unitDiv).toFixed(2)} unità invece di ${+(full/unitDiv).toFixed(2)}.`);
+    const ks=trKeySig(key);
+    for(const it of b.items){
+      if(it.p===null) continue;
+      const pm=/^([A-Ga-g])(#|b|n|##|bb)?(-?\d)$/.exec(it.p);
+      if(!pm) throw new TrErr(li,`Battuta ${num}: nota «${it.p}» non valida (esempi: C4, F#5, Bb4, En5).`);
+      const st=pm[1].toUpperCase(), ac=pm[2]||'', oc=parseInt(pm[3],10); let al;
+      if(ac){ al={'#':1,'##':2,'b':-1,'bb':-2,'n':0}[ac]; state[st+oc]=al; }
+      else if((st+oc) in state) al=state[st+oc]; else al=ks[st];
+      Object.assign(it,{step:st,alter:al,oct:oc,explicit:!!ac});
+    }
+    Object.assign(b,{full,key,ks,tb,tbt});
+    bars.push(b);
+  });
+  if(!bars.length) throw new TrErr(0,'Non c\'è ancora nessuna battuta da convertire.');
+  const flat=[]; bars.forEach(b=>b.items.forEach(it=>{ if(it.p!==null) flat.push(it); }));
+  for(let i=0;i<flat.length-1;i++){ const a=flat[i], n=flat[i+1]; if(a.tie&&n.step===a.step&&n.oct===a.oct&&n.alter!==a.alter&&!n.explicit) n.alter=a.alter; }
+  return bars;
+}
+function trChordXml(c){
+  const m=/^([A-G])([b#]?)([^/]*)(?:\/([A-G][b#]?))?$/.exec(c); if(!m) return null;
+  const [,root,al,q0,bass]=m; const q=q0.replace(/[()]/g,'');
+  let degs='', kind;
+  const deg=(v,a,ty='add')=>`<degree><degree-value>${v}</degree-value><degree-alter>${a}</degree-alter><degree-type>${ty}</degree-type></degree>`;
+  const mm=/^(mi7|m7|mi9|7|9|11|13|maj7|mi|m|6|mi6|)((?:[#b]\d+)+)$/.exec(q);
+  let base=q;
+  if(mm){ base=mm[1]; for(const x of mm[2].matchAll(/([#b])(\d+)/g)) degs+=deg(x[2],x[1]==='#'?1:-1); }
+  if(base==='mi7sus') { kind='minor-seventh'; degs+=deg(4,0); }
+  else if(/^(7|9|13)sus4?$/.test(base)){ kind='suspended-fourth'; degs+=deg(base.replace(/sus4?/,''),0); }
+  else if(base in TR_KINDS) kind=TR_KINDS[base];
+  else return null;
+  let x=`<harmony><root><root-step>${root}</root-step>${al?`<root-alter>${al==='b'?-1:1}</root-alter>`:''}</root><kind text="${trEsc(q)}">${kind}</kind>`;
+  if(bass) x+=`<bass><bass-step>${bass[0]}</bass-step>${bass[1]?`<bass-alter>${bass[1]==='b'?-1:1}</bass-alter>`:''}</bass>`;
+  return x+degs+'</harmony>';
+}
+function trDir(k,v){
+  if(k==='dyn') return `<direction placement="below"><direction-type><dynamics><${/^(ppp|pp|p|mp|mf|f|ff|fff|sf|sfz|fp|fz|rf)$/.test(v)?v:'mf'}/></dynamics></direction-type></direction>`;
+  if(k==='wedge') return `<direction placement="below"><direction-type><wedge type="${{'<':'crescendo','>':'diminuendo','/':'stop'}[v]}" number="1"/></direction-type></direction>`;
+  if(k==='reh') return `<direction placement="above"><direction-type><rehearsal>${trEsc(v)}</rehearsal></direction-type></direction>`;
+  return `<direction placement="above"><direction-type><words>${trEsc(v)}</words></direction-type></direction>`;
+}
+/* struttura -> MusicXML */
+function trToXml(hdr,bars){
+  const ins=INSTR.find(i=>i.id===hdr.instr)||INSTR[0];
+  const unitDiv=96/hdr.unit; const warn=[];
+  const flat=[]; bars.forEach(b=>b.items.forEach(it=>{ if(it.p!==null) flat.push(it); }));
+  const body=[];
+  bars.forEach((b,bi)=>{
+    const pick=b.num.endsWith('p');
+    const m=[`<measure number="${pick?'0':b.num}"${pick?' implicit="yes"':''}>`];
+    if(bi===0){
+      const [tb,tbt]=hdr.time.split('/');
+      const tr=(ins.d||ins.c)?`<transpose><diatonic>${ins.d}</diatonic><chromatic>${ins.c}</chromatic></transpose>`:'';
+      m.push(`<attributes><divisions>${TR_DIV}</divisions><key><fifths>${hdr.key}</fifths></key><time${hdr.time==='4/4'&&hdr.common?' symbol="common"':''}><beats>${tb}</beats><beat-type>${tbt}</beat-type></time><clef><sign>G</sign><line>2</line></clef>${tr}</attributes>`);
+      if(hdr.words) m.push(trDir('words',hdr.words));
+      if(hdr.tempo>0) m.push(`<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${hdr.tempo}</per-minute></metronome></direction-type><sound tempo="${hdr.tempo}"/></direction>`);
+    } else if(b.keychg!==null||b.timechg){
+      let a='<attributes>'; if(b.keychg!==null) a+=`<key><fifths>${b.keychg}</fifths></key>`; if(b.timechg) a+=`<time><beats>${b.timechg[0]}</beats><beat-type>${b.timechg[1]}</beat-type></time>`; m.push(a+'</attributes>');
+    }
+    if(b.rs) m.push('<barline location="left"><repeat direction="forward"/></barline>');
+    const pieces=[];
+    for(const it of b.items){
+      if(it.trip){ const ty=it.trip==='Q'?'quarter':(hdr.unit===8?'eighth':'16th'); pieces.push({it,s:it.s,dur:it.l,type:ty,dot:0,trip:true,tieS:false,tieE:false,first:true}); continue; }
+      const parts=trSplit(it.l);
+      if(!parts){ throw new TrErr(b.line,`Battuta ${b.num}: durata non scrivibile in notazione.`); }
+      let s=it.s; parts.forEach((pt,j)=>{ pieces.push({it,s,dur:pt[0],type:pt[1],dot:pt[2],trip:false,tieS:j<parts.length-1,tieE:j>0,first:j===0}); s+=pt[0]; });
+    }
+    const before={};
+    b.chords.forEach((c,ci)=>{
+      const [nme,at]=c.split('@'); const cp=(at?trFrac(at):0)*unitDiv;
+      let j=0,best=1e9; pieces.forEach((pc,k)=>{ const dd=Math.abs(pc.s-cp); if(dd<best){best=dd;j=k;} });
+      const x=trChordXml(nme); if(!x){ warn.push(`Battuta ${b.num}: sigla «${nme}» non riconosciuta, ignorata.`); return; }
+      (before[j]=before[j]||[]).push(x);
+    });
+    const dbefore={};
+    for(const [dp,dk,dv] of b.dirs){ let j=pieces.findIndex(pc=>pc.s>=dp); if(j<0) j=pieces.length; (dbefore[j]=dbefore[j]||[]).push(trDir(dk,dv)); }
+    const st={};
+    pieces.forEach((pc,j)=>{
+      (dbefore[j]||[]).forEach(x=>m.push(x)); (before[j]||[]).forEach(x=>m.push(x));
+      const it=pc.it; const mk=it.marks||'';
+      const tm=pc.trip?`<time-modification><actual-notes>${it.tn}</actual-notes><normal-notes>${it.tn===3?2:(it.tn<=4?2:4)}</normal-notes></time-modification>`:'';
+      if(it.p===null){
+        const fz=mk.includes('*')&&pc.first?'<notations><fermata/></notations>':'';
+        if(pc.dur===b.full&&!pc.trip) m.push(`<note><rest measure="yes"/><duration>${pc.dur}</duration>${fz}</note>`);
+        else m.push(`<note><rest/><duration>${pc.dur}</duration><type>${pc.type}</type>${pc.dot?'<dot/>':''}${tm}${fz}</note>`);
+        return;
+      }
+      const gi=flat.indexOf(it);
+      const prevTied=gi>0&&flat[gi-1].tie&&flat[gi-1].step===it.step&&flat[gi-1].oct===it.oct&&pc.first;
+      const ties=[]; if(pc.tieE||prevTied) ties.push('stop');
+      const last=(j===pieces.length-1)||pieces[j+1].it!==it;
+      if(pc.tieS||(last&&it.tie)) ties.push('start');
+      const kk=it.step+it.oct; const cur=(kk in st)?st[kk]:b.ks[it.step];
+      let acc='';
+      if(!prevTied&&!pc.tieE&&cur!==it.alter) acc=`<accidental>${{'1':'sharp','-1':'flat','0':'natural','2':'double-sharp','-2':'flat-flat'}[it.alter]}</accidental>`;
+      if(!prevTied&&!pc.tieE) st[kk]=it.alter;
+      let x=`<note><pitch><step>${it.step}</step>${it.alter?`<alter>${it.alter}</alter>`:''}<octave>${it.oct}</octave></pitch><duration>${pc.dur}</duration>`;
+      x+=ties.map(t=>`<tie type="${t}"/>`).join('')+`<type>${pc.type}</type>${pc.dot?'<dot/>':''}${acc}${tm}`;
+      let nots=ties.map(t=>`<tied type="${t}"/>`).join('');
+      if(it.slS&&pc.first) nots+='<slur type="start" number="1"/>';
+      if(it.slE&&last) nots+='<slur type="stop" number="1"/>';
+      if(pc.trip&&it.tp) nots+=`<tuplet type="${it.tp}" bracket="yes" show-number="actual"/>`;
+      if(mk&&pc.first){
+        const ar=[["'",'staccato'],['>','accent'],['^','strong-accent'],['_','tenuto'],[',','breath-mark']].filter(([c])=>mk.includes(c)).map(([,t])=>`<${t}/>`).join('');
+        if(ar) nots+=`<articulations>${ar}</articulations>`;
+        if(mk.includes('*')) nots+='<fermata/>';
+      }
+      if(nots) x+=`<notations>${nots}</notations>`;
+      m.push(x+'</note>');
+    });
+    if(b.re) m.push('<barline location="right"><repeat direction="backward"/></barline>');
+    else if(b.rb) m.push(`<barline location="right"><bar-style>${b.rb==='||'?'light-light':'light-heavy'}</bar-style></barline>`);
+    body.push(m.join('')+'</measure>');
+  });
+  const misc=[['author','GPBossi'],['source',hdr.source||''],hdr.swing?['swing','1']:null].filter(Boolean).map(([k,v])=>`<miscellaneous-field name="${k}">${trEsc(v)}</miscellaneous-field>`).join('');
+  const pn=trEsc(ins.n.replace(/\s*\(.*\)$/,''));
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="4.0"><work><work-title>${trEsc(hdr.title||'Trascrizione')}</work-title></work><identification>${hdr.composer?`<creator type="composer">${trEsc(hdr.composer)}</creator>`:''}<encoding><software>Lettore di spartiti — trascrizione</software><encoder>GPBossi</encoder></encoding><miscellaneous>${misc}</miscellaneous></identification><part-list><score-part id="P1"><part-name>${pn}</part-name><score-instrument id="P1-I1"><instrument-name>${pn}</instrument-name></score-instrument></score-part></part-list><part id="P1">\n${body.join('\n')}\n</part></score-partwise>\n`;
+  return {xml,warn};
+}
+
+/* MusicXML -> testo (per partire da una bozza: OMR esterno o brano aperto) */
+function trFromXml(doc){
+  const part=doc.querySelector('part'); if(!part) throw new Error('Nel file non c\'è nessuna parte.');
+  const out=[]; let div=1, fifths=0, beats=4, btype=4, first=null, tempo=0, words='';
+  const meas=[...part.querySelectorAll(':scope > measure')];
+  // unità: semicroma se servono valori più piccoli della croma
+  let need16=false;
+  for(const ms of meas){ const dv=ms.querySelector(':scope > attributes > divisions'); if(dv) div=+dv.textContent||div;
+    for(const n of ms.querySelectorAll(':scope > note')){ if(n.querySelector('grace')||n.querySelector('chord')) continue; const d=+((n.querySelector(':scope > duration')||{}).textContent||0); if(!n.querySelector('time-modification') && d && (d*2/div)%1) need16=true; } }
+  const unit=need16?16:8; div=1;
+  const accState={}; let ks=trKeySig(0); let prevTie=null; const warn=[];
+  const tx=t=>t.replace(/\s+/g,'_');
+  meas.forEach((ms,mi)=>{
+    const toks=[]; const chords=[]; let pos=0;
+    const at=ms.querySelector(':scope > attributes');
+    if(at){
+      const dv=at.querySelector('divisions'); if(dv) div=+dv.textContent||div;
+      const k=at.querySelector('key > fifths'); const t=at.querySelector('time');
+      if(k){ const f=parseInt(k.textContent,10)||0; if(first===null) fifths=f; else if(f!==fifths){ toks.push('K='+f); fifths=f; } ks=trKeySig(f); }
+      if(t){ const bb=+t.querySelector('beats').textContent, bt=+t.querySelector('beat-type').textContent; if(first===null){ beats=bb; btype=bt; } else if(bb!==beats||bt!==btype){ toks.push(`M=${bb}/${bt}`); beats=bb; btype=bt; } }
+    }
+    if(first===null) first=fifths;
+    for(const k in accState) delete accState[k];
+    const uDiv=div*4/unit;              // divisioni per unità
+    const fmt=v=>{ const r=v/uDiv; if(Number.isInteger(r)) return String(r); for(const q of [2,3,4,6,8]){ if(Number.isInteger(r*q)) return `${r*q}/${q}`; } return r.toFixed(3); };
+    if(ms.querySelector(':scope > barline[location="left"] repeat[direction="forward"]')) toks.push('|:');
+    let trip=null;
+    for(const el of ms.children){
+      const tag=el.tagName;
+      if(tag==='direction'){
+        const dyn=el.querySelector('dynamics > *'); if(dyn) toks.push('D='+dyn.tagName);
+        const w=el.querySelector('wedge'); if(w){ const ty=w.getAttribute('type'); toks.push('W'+(ty==='crescendo'?'<':ty==='diminuendo'?'>':'/')); }
+        const r=el.querySelector('rehearsal'); if(r&&r.textContent.trim()) toks.push('R='+tx(r.textContent.trim()));
+        const wd=el.querySelector('words'); if(wd&&wd.textContent.trim()){ if(mi===0&&!words&&!toks.some(t=>/^[A-Z]=|^W/.test(t))) words=wd.textContent.trim(); else toks.push('X='+tx(wd.textContent.trim())); }
+        const pm=el.querySelector('metronome per-minute'), snd=el.querySelector('sound[tempo]');
+        if(!tempo&&(pm||snd)) tempo=Math.round(+(pm?pm.textContent:snd.getAttribute('tempo')));
+        continue;
+      }
+      if(tag==='harmony'){
+        const rs=(el.querySelector('root-step')||{}).textContent; if(!rs) continue;
+        const ra=+((el.querySelector('root-alter')||{}).textContent||0);
+        const kd=el.querySelector('kind'); const kt=kd?(kd.getAttribute('text')!==null&&kd.getAttribute('text')!==''?kd.getAttribute('text'):(TR_KIND_OUT[kd.textContent.trim()]??'')):'';
+        let degs=''; el.querySelectorAll('degree').forEach(d=>{ const a=+((d.querySelector('degree-alter')||{}).textContent||0); if(a) degs+=(a>0?'#':'b')+d.querySelector('degree-value').textContent; });
+        const bs=el.querySelector('bass-step'); const ba=+((el.querySelector('bass-alter')||{}).textContent||0);
+        let name=rs+(ra>0?'#':ra<0?'b':'')+kt+(kd&&kd.getAttribute('text')?'':degs);
+        if(bs) name+='/'+bs.textContent+(ba>0?'#':ba<0?'b':'');
+        chords.push(name+(pos?'@'+fmt(pos):'')); continue;
+      }
+      if(tag==='backup'||tag==='forward'){ warn.push(`Battuta ${ms.getAttribute('number')}: più voci, tenuta solo la prima.`); break; }
+      if(tag!=='note') continue;
+      const n=el; if(n.querySelector('grace')||n.querySelector('chord')) continue;
+      const d=+((n.querySelector(':scope > duration')||{}).textContent||0);
+      let p;
+      const rest=n.querySelector('rest');
+      if(rest) p='r';
+      else {
+        const step=n.querySelector('step').textContent, oct=+n.querySelector('octave').textContent, al=+((n.querySelector('alter')||{}).textContent||0);
+        const k=step+oct; let expect=(k in accState)?accState[k]:ks[step];
+        if(prevTie&&prevTie.step===step&&prevTie.oct===oct) expect=al;   // continuazione di legatura di valore
+        let acc=''; if(al!==expect){ acc={'1':'#','-1':'b','0':'n','2':'##','-2':'bb'}[al]; }
+        if(acc) accState[k]=al;
+        p=step+acc+oct;
+        prevTie=null;
+      }
+      const tie=!rest&&[...n.querySelectorAll(':scope > tie')].some(t=>t.getAttribute('type')==='start');
+      if(tie) prevTie={step:n.querySelector('step').textContent,oct:+n.querySelector('octave').textContent}; else if(!rest) prevTie=null;
+      let mk='';
+      const nt=n.querySelector('notations');
+      if(nt){ [['staccato',"'"],['staccatissimo',"'"],['accent','>'],['strong-accent','^'],['tenuto','_'],['breath-mark',',']].forEach(([t,c])=>{ if(nt.querySelector('articulations > '+t)) mk+=c; }); if(nt.querySelector('fermata')) mk+='*'; }
+      const sS=nt&&[...nt.querySelectorAll('slur')].some(s=>s.getAttribute('type')==='start');
+      const sE=nt&&[...nt.querySelectorAll('slur')].some(s=>s.getAttribute('type')==='stop');
+      const tmod=n.querySelector('time-modification');
+      if(tmod&&+tmod.querySelector('actual-notes').textContent===3&&+tmod.querySelector('normal-notes').textContent===2){
+        const ty=(n.querySelector('type')||{}).textContent;
+        const q=ty==='quarter'; const eachDiv=q?div*2/3:uDiv*2/3;
+        if(!trip) trip={q,ps:[],start:pos};
+        trip.ps.push(p); pos+=d;
+        if(trip.ps.length===3){ toks.push((trip.q?'TQ(':'T(')+trip.ps.join(' ')+')'); trip=null; }
+        continue;
+      }
+      if(trip){ toks.push('# terzina incompleta'); trip=null; }
+      toks.push((sS?'(':'')+p+':'+fmt(d)+mk+(sE?')':'')+(tie?'~':'')); pos+=d;
+    }
+    const bl=ms.querySelector(':scope > barline[location="right"]');
+    if(bl){ if(bl.querySelector('repeat[direction="backward"]')) toks.push(':|'); else { const s=(bl.querySelector('bar-style')||{}).textContent; if(s==='light-light') toks.push('||'); else if(s==='light-heavy') toks.push('|]'); } }
+    const num=ms.getAttribute('implicit')==='yes'?'0p':String(mi+1-(meas[0].getAttribute('implicit')==='yes'?1:0));
+    out.push(`${num} | ${chords.join(' ')} | ${toks.join(' ')}`);
+  });
+  const title=((doc.querySelector('work-title')||doc.querySelector('movement-title')||{}).textContent||'').trim();
+  const composer=((doc.querySelector('creator[type="composer"]')||{}).textContent||'').trim();
+  const sw=!!doc.querySelector('miscellaneous-field[name="swing"]');
+  const t=readTransposeOf(doc); const ins=INSTR.find(i=>i.d===t.d&&i.c===t.c);
+  return {text:out.join('\n'),hdr:{title,composer,key:first||0,time:`${beats}/${btype}`,unit,tempo:tempo||100,words,swing:sw,instr:ins?ins.id:'c'},warn};
+}
+
+/* ---------- Analisi della pagina: righi e stanghette ---------- */
+function trDetect(img){
+  const {width:w,height:h,data}=img; const dark=new Uint8Array(w*h);
+  for(let i=0,j=0;i<w*h;i++,j+=4){ const y=0.299*data[j]+0.587*data[j+1]+0.114*data[j+2]; dark[i]=y<150?1:0; }
+  const x0=Math.floor(w*0.08), x1=Math.floor(w*0.92), span=x1-x0;
+  const rowR=new Float32Array(h);
+  for(let y=0;y<h;y++){ let c=0; const o=y*w; for(let x=x0;x<x1;x++) c+=dark[o+x]; rowR[y]=c/span; }
+  // righe del pentagramma: massimi locali di righe orizzontali molto piene
+  const lines=[];
+  for(let y=2;y<h-2;y++){
+    const v=rowR[y]; if(v<=0.35||v<rowR[y-1]||v<rowR[y+1]||v<rowR[y-2]||v<rowR[y+2]) continue;
+    const l=lines[lines.length-1];
+    if(l&&y-l.y<=3){ if(v>rowR[l.y]) l.y=y; } else lines.push({y});
+  }
+  const staves=[]; let i=0;
+  while(i+4<lines.length){
+    const g=lines.slice(i,i+5).map(l=>l.y); const gaps=[g[1]-g[0],g[2]-g[1],g[3]-g[2],g[4]-g[3]];
+    const avg=gaps.reduce((a,b)=>a+b,0)/4;
+    if(avg>=5&&avg<=60&&gaps.every(x=>Math.abs(x-avg)<=Math.max(2,avg*0.25))){ staves.push({lines:g,top:g[0],bot:g[4],sp:avg}); i+=5; }
+    else i++;
+  }
+  for(const s of staves){
+    // estensione orizzontale: colonne in cui almeno 4 righe su 5 sono nere
+    const on=x=>{ let c=0; for(const ly of s.lines){ const yy=Math.round(ly); let hit=0; for(let d=-2;d<=2&&!hit;d++){ const r=yy+d; if(r>=0&&r<h&&dark[r*w+x]) hit=1; } c+=hit; } return c>=4; };
+    let L=0,R=w-1; while(L<w&&!on(L)) L++; while(R>L&&!on(R)) R--;
+    s.left=L; s.right=R;
+    // stanghette: tratti verticali sottili che coprono tutta l'altezza del rigo, senza sporgere
+    // e senza una testa di nota attaccata a un'estremità (che li rivelerebbe come gambi)
+    const top=Math.round(s.top), bot=Math.round(s.bot), H=bot-top+1, ext=Math.round(s.sp*1.5), sp=s.sp;
+    const D=(x,y)=>(x>=0&&x<w&&y>=0&&y<h)?dark[y*w+x]:0;
+    const dens=(y0,y1,xa,xb)=>{ y0=Math.max(0,Math.round(y0)); y1=Math.min(h,Math.round(y1)); xa=Math.max(0,Math.round(xa)); xb=Math.min(w,Math.round(xb)); let c=0,n=0; for(let yy=y0;yy<y1;yy++) for(let xx=xa;xx<xb;xx++){ c+=dark[yy*w+xx]; n++; } return n?c/n:0; };
+    const cand=[];
+    for(let x=L;x<=R;x++){
+      let c=0; for(let yy=top;yy<=bot;yy++) c+=(D(x,yy)|D(x-1,yy)|D(x+1,yy));
+      if(c/H<0.9) continue;
+      let ab=0,na=0,be=0,nb=0; for(let yy=top-ext;yy<top-2;yy++){ if(yy>=0){ ab+=D(x,yy); na++; } } for(let yy=bot+3;yy<bot+ext;yy++){ if(yy<h){ be+=D(x,yy); nb++; } }
+      if((na&&ab/na>0.4)||(nb&&be/nb>0.4)) continue;
+      cand.push(x);
+    }
+    const runs=[]; for(const x of cand){ const r=runs[runs.length-1]; if(r&&x-r.b<=2) r.b=x; else runs.push({a:x,b:x}); }
+    const k=Math.round(sp*1.4); const keep=[];
+    for(const r of runs){
+      const wd=r.b-r.a+1; if(wd<2||wd>Math.max(4,sp*0.5)) continue;
+      const lb=dens(bot-sp*0.8,bot+sp*1.2,r.a-k,r.a-1), rt=dens(top-sp*1.2,top+sp*0.8,r.b+2,r.b+k+1);
+      if(Math.max(lb,rt)>=0.27) continue;
+      keep.push((r.a+r.b)/2);
+    }
+    // unisce doppie stanghette e scarta l'inizio del rigo (chiave, armatura, tempo)
+    const merged=[]; for(const x of keep){ if(merged.length&&x-merged[merged.length-1]<sp*1.2) merged[merged.length-1]=x; else merged.push(x); }
+    s.bars=merged.filter(x=>x>L+sp*5);
+    if(!s.bars.length||R-s.bars[s.bars.length-1]>sp*2) s.bars.push(R);
+  }
+  return staves;
+}
+
+/* ---------- Interfaccia ---------- */
+const trLs=(k,v)=>{ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(_){} return null; };
+function trHdr(){
+  return {title:$('trTitle').value.trim(),composer:$('trComp').value.trim(),instr:$('trInstr').value,key:parseInt($('trKey').value,10)||0,
+    time:$('trTime').value.trim()||'4/4',unit:parseInt($('trUnit').value,10)||8,tempo:parseInt($('trBpm').value,10)||0,words:$('trWords').value.trim(),swing:$('trSwing').checked,common:true,source:TR.file?('Trascrizione da '+TR.file):''};
+}
+function trSetHdr(h){
+  if(h.title!==undefined) $('trTitle').value=h.title; if(h.composer!==undefined) $('trComp').value=h.composer;
+  if(h.instr) $('trInstr').value=h.instr; if(h.key!==undefined) $('trKey').value=String(h.key);
+  if(h.time) $('trTime').value=h.time; if(h.unit) $('trUnit').value=String(h.unit);
+  if(h.tempo!==undefined) $('trBpm').value=h.tempo||''; if(h.words!==undefined) $('trWords').value=h.words; if(h.swing!==undefined) $('trSwing').checked=!!h.swing;
+}
+function trSave(){ trLs('lettore.tr',JSON.stringify({hdr:trHdr(),text:$('trText').value,file:TR.file,bars:TR.bars})); }
+function trRestore(){ try{ const d=JSON.parse(trLs('lettore.tr')||'null'); if(!d) return; trSetHdr(d.hdr||{}); $('trText').value=d.text||''; TR.file=d.file||''; TR.bars=d.bars||{}; if(TR.file) $('trFileName').textContent=TR.file+' (ricaricalo per vedere le pagine)'; }catch(_){} }
+function trMsg(html,kind){ const el=$('trMsg'); el.innerHTML=html; el.className='trmsg'+(kind?' '+kind:''); }
+function trCheck(){
+  try{ const hdr=trHdr(); const bars=trParse($('trText').value,hdr); const r=trToXml(hdr,bars);
+    const vuote=bars.filter(b=>b.empty).length;
+    trMsg(`✓ ${bars.length-vuote} battute scritte`+(vuote?`, ${vuote} ancora vuote (nell'anteprima diventano pause)`:'')+(r.warn.length?' — '+r.warn.map(trEsc).join(' · '):''),(r.warn.length||vuote)?'warn':'ok'); return {hdr,bars,...r};
+  }catch(e){ if(e instanceof TrErr){ trMsg(`<a href="#" data-line="${e.line}">Riga ${e.line+1}</a>: ${trEsc(e.message)}`,'err'); } else trMsg(trEsc(e.message||String(e)),'err'); return null; }
+}
+async function trLoadPdfLib(){
+  if(window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'; s.onload=res; s.onerror=()=>rej(new Error('Non riesco a caricare il lettore PDF: controlla la connessione.')); document.head.appendChild(s); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  return window.pdfjsLib;
+}
+async function trOpenFile(file){
+  if(!file) return; TR.busy=true; trMsg('Apro '+trEsc(file.name)+'…');
+  try{
+    TR.pages=[]; TR.file=file.name; $('trFileName').textContent=file.name;
+    const TARGET=1700;
+    if(/\.pdf$/i.test(file.name)||file.type==='application/pdf'){
+      const lib=await trLoadPdfLib(); const pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+      for(let p=1;p<=pdf.numPages;p++){
+        const pg=await pdf.getPage(p); const vp0=pg.getViewport({scale:1}); const vp=pg.getViewport({scale:TARGET/vp0.width});
+        const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+        const cx=c.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height);
+        await pg.render({canvasContext:cx,viewport:vp}).promise; TR.pages.push({canvas:c,staves:null});
+        trMsg(`Pagina ${p} di ${pdf.numPages}…`);
+      }
+    } else {
+      const bmp=await createImageBitmap(file); const sc=TARGET/bmp.width;
+      const c=document.createElement('canvas'); c.width=TARGET; c.height=Math.round(bmp.height*sc);
+      const cx=c.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height); cx.drawImage(bmp,0,0,c.width,c.height); TR.pages.push({canvas:c,staves:null});
+    }
+    TR.pages.forEach(pg=>{ const cx=pg.canvas.getContext('2d',{willReadFrequently:true}); pg.staves=trDetect(cx.getImageData(0,0,pg.canvas.width,pg.canvas.height)); });
+    TR.page=0; TR.sel=null; trDrawPage();
+    const ns=TR.pages.reduce((a,p)=>a+p.staves.length,0), nb=TR.pages.reduce((a,p)=>a+p.staves.reduce((b,s)=>b+s.bars.length,0),0);
+    trMsg(`${TR.pages.length} pagine · ${ns} righi riconosciuti · circa ${nb} battute. ${$('trText').value.trim()?'':'Premi «Prepara le battute» per creare lo schema.'}`,'ok');
+    trSave();
+  }catch(e){ trMsg(trEsc(e.message||String(e)),'err'); }
+  TR.busy=false;
+}
+function trDrawPage(){
+  const cv=$('trPage'); const pg=TR.pages[TR.page];
+  $('trPgLbl').textContent=TR.pages.length?`Pag. ${TR.page+1}/${TR.pages.length}`:'—';
+  if(!pg){ cv.width=10; cv.height=10; return; }
+  cv.width=pg.canvas.width; cv.height=pg.canvas.height; const cx=cv.getContext('2d'); cx.drawImage(pg.canvas,0,0);
+  pg.staves.forEach((s,i)=>{
+    const sel=TR.sel&&TR.sel.page===TR.page&&TR.sel.sys===i;
+    cx.strokeStyle=sel?'rgba(228,87,26,.95)':'rgba(11,110,117,.55)'; cx.lineWidth=sel?5:3;
+    cx.strokeRect(s.left-6,s.top-s.sp*3,s.right-s.left+12,s.bot-s.top+s.sp*6);
+    cx.fillStyle='rgba(11,110,117,.9)'; cx.font='bold 26px sans-serif'; cx.fillText(String(i+1),Math.max(2,s.left-34),s.top+s.sp*2.5);
+  });
+  trDrawStrip();
+}
+function trBarsOf(page,sys){ return Object.entries(TR.bars).filter(([,v])=>v.p===page&&v.s===sys).map(([n,v])=>({n,...v})); }
+function trDrawStrip(curBar){
+  const cv=$('trStrip'); const pg=TR.pages[TR.page];
+  if(!pg||!TR.sel||TR.sel.page!==TR.page){ cv.width=10; cv.height=10; cv.style.display='none'; return; }
+  const s=pg.staves[TR.sel.sys]; if(!s){ cv.style.display='none'; return; }
+  cv.style.display='block';
+  const y0=Math.max(0,Math.round(s.top-s.sp*5)), y1=Math.min(pg.canvas.height,Math.round(s.bot+s.sp*5));
+  const x0=Math.max(0,s.left-20), x1=Math.min(pg.canvas.width,s.right+20);
+  cv.width=x1-x0; cv.height=y1-y0; const cx=cv.getContext('2d'); cx.drawImage(pg.canvas,x0,y0,x1-x0,y1-y0,0,0,x1-x0,y1-y0);
+  const bars=trBarsOf(TR.page,TR.sel.sys);
+  bars.forEach(b=>{
+    const hl=String(b.n)===String(curBar);
+    if(hl){ cx.fillStyle='rgba(228,87,26,.16)'; cx.fillRect(b.a-x0,0,b.b-b.a,cv.height); }
+    cx.fillStyle=hl?'rgba(228,87,26,1)':'rgba(11,110,117,.95)'; cx.font='bold 22px sans-serif'; cx.fillText(String(b.n),b.a-x0+6,22);
+    cx.strokeStyle='rgba(11,110,117,.35)'; cx.lineWidth=1; cx.beginPath(); cx.moveTo(b.b-x0,0); cx.lineTo(b.b-x0,cv.height); cx.stroke();
+  });
+  TR.dots.filter(d=>d.p===TR.page&&d.s===TR.sel.sys).forEach(d=>{ cx.fillStyle='rgba(228,87,26,.85)'; cx.beginPath(); cx.arc(d.x-x0,d.y-y0,7,0,6.3); cx.fill(); cx.font='bold 15px sans-serif'; cx.fillText(d.lab,d.x-x0+9,d.y-y0-9); });
+  TR.stripX0=x0; TR.stripY0=y0;
+}
+/* altezza della nota dal punto toccato: righe del rigo misurate vicino al punto (le scansioni sono spesso storte) */
+function trPitchAt(pg,s,x,y){
+  const cx=pg.canvas.getContext('2d',{willReadFrequently:true}); const W=40, x0=Math.max(0,Math.round(x-W)), w=Math.min(pg.canvas.width-x0,2*W);
+  const top=Math.max(0,Math.round(s.top-s.sp)), H=Math.round(s.bot-s.top+2*s.sp);
+  const d=cx.getImageData(x0,top,w,H).data; const prof=new Float32Array(H);
+  for(let r=0;r<H;r++){ let c=0; for(let k=0;k<w;k++){ const j=(r*w+k)*4; if(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2]<150) c++; } prof[r]=c/w; }
+  const loc=s.lines.map(ly=>{ let best=ly, bv=-1; for(let dy=-Math.round(s.sp*0.4);dy<=Math.round(s.sp*0.4);dy++){ const r=Math.round(ly)+dy-top; if(r>=0&&r<H&&prof[r]>bv){ bv=prof[r]; best=ly+dy; } } return bv>0.5?best:ly; });
+  const sp=(loc[4]-loc[0])/4; const bottom=loc[4];
+  const k=Math.round((bottom-y)/(sp/2));            // 0 = riga in basso (Mi4 in chiave di violino)
+  const dn=4*7+2+k; const step='CDEFGAB'[((dn%7)+7)%7], oct=Math.floor(dn/7);
+  return {step,oct,y:bottom-k*sp/2};
+}
+function trBarLine(n){ const lines=$('trText').value.split('\n'); for(let i=0;i<lines.length;i++){ const m=/^\s*(\d+)p?\s*\|/.exec(lines[i]); if(m&&m[1]===String(n)) return i; } return -1; }
+function trAppend(n,tok){
+  const ta=$('trText'); const lines=ta.value.split('\n'); const li=trBarLine(n); if(li<0) return false;
+  TR.hist.push(ta.value); if(TR.hist.length>200) TR.hist.shift();
+  let l=lines[li]; const parts=l.split('|'); if(parts.length<3) l=parts[0]+'| |'+parts.slice(1).join('|');
+  lines[li]=l.replace(/\s*$/,'')+(/\|\s*$/.test(l)?' ':' ')+tok; ta.value=lines.join('\n');
+  trSave(); trCheck(); trGoBar(n); return true;
+}
+function trModLast(fn){
+  const {bar}=trCaretBar(); if(!bar) return; const ta=$('trText'); const lines=ta.value.split('\n'); const li=trBarLine(bar); if(li<0) return;
+  const m=/^(.*\|.*?)(\S+)\s*$/.exec(lines[li]); if(!m) return; const nt=fn(m[2]); if(!nt||nt===m[2]) return;
+  TR.hist.push(ta.value); lines[li]=m[1]+nt; ta.value=lines.join('\n'); trSave(); trCheck(); trGoBar(bar);
+}
+function trAcc(a){ trModLast(t=>{ const m=/^(\(?)([A-G])(#|b|n|##|bb)?(-?\d)(:.*)$/.exec(t); return m?m[1]+m[2]+a+m[4]+m[5]:null; }); }
+function trTie(){ trModLast(t=>/^[^r].*:/.test(t)?(t.endsWith('~')?t.slice(0,-1):t+'~'):null); }
+function trUndo(){ const v=TR.hist.pop(); if(v===undefined) return; $('trText').value=v; TR.dots.pop(); trSave(); trCheck(); trSyncFromCaret(); }
+function trSkeleton(){
+  if(!TR.pages.length){ trMsg('Carica prima il PDF o l\'immagine dello spartito.','err'); return; }
+  if($('trText').value.trim() && !confirm('Lo schema sostituisce il testo attuale. Continuare?')) return;
+  const lines=[]; let n=0; TR.bars={};
+  TR.pages.forEach((pg,pi)=>{ pg.staves.forEach((s,si)=>{
+    lines.push(`# pagina ${pi+1} · rigo ${si+1}`);
+    let a=s.left+s.sp*4;   // dopo chiave e armatura (stima)
+    s.bars.forEach(x=>{ n++; TR.bars[n]={p:pi,s:si,a:Math.round(a),b:Math.round(x)}; lines.push(`${n} |  | `); a=x; });
+  }); });
+  $('trText').value=lines.join('\n'); trSave(); trCheck();
+  trMsg(`Schema pronto: ${n} battute su ${TR.pages.reduce((a,p)=>a+p.staves.length,0)} righi. Il conteggio delle battute è una stima: controlla rigo per rigo, aggiungi o togli righe dove serve.`,'warn');
+}
+function trCaretBar(){
+  const ta=$('trText'); const upto=ta.value.slice(0,ta.selectionStart); const li=upto.split('\n').length-1; const lines=ta.value.split('\n');
+  const m=/^\s*(\d+)p?\s*\|/.exec(lines[li]||''); let sec=null;
+  for(let i=li;i>=0;i--){ const c=/^#\s*pagina\s+(\d+)\s*·\s*rigo\s+(\d+)/i.exec(lines[i]); if(c){ sec={page:+c[1]-1,sys:+c[2]-1}; break; } }
+  return {bar:m?m[1]:null,sec};
+}
+function trSyncFromCaret(){
+  const {bar,sec}=trCaretBar(); let tgt=null;
+  if(bar&&TR.bars[bar]) tgt={page:TR.bars[bar].p,sys:TR.bars[bar].s}; else if(sec) tgt=sec;
+  if(tgt&&TR.pages[tgt.page]&&TR.pages[tgt.page].staves[tgt.sys]){
+    const ch=!TR.sel||TR.sel.page!==tgt.page||TR.sel.sys!==tgt.sys||TR.page!==tgt.page;
+    TR.sel=tgt; if(TR.page!==tgt.page) TR.page=tgt.page; if(ch) trDrawPage();
+  }
+  trDrawStrip(bar);
+  $('trSysLbl').textContent=TR.sel?`Rigo ${TR.sel.sys+1}`+(bar?` · battuta ${bar}`:''):'';
+}
+function trGoBar(n){
+  const ta=$('trText'); const lines=ta.value.split('\n'); let off=0;
+  for(const l of lines){ const m=/^\s*(\d+)p?\s*\|/.exec(l); if(m&&m[1]===String(n)){ const p=off+l.length; ta.focus(); ta.setSelectionRange(p,p); const lh=parseFloat(getComputedStyle(ta).lineHeight)||20; ta.scrollTop=Math.max(0,(ta.value.slice(0,off).split('\n').length-3)*lh); trSyncFromCaret(); return; } off+=l.length+1; }
+}
+function trGoLine(li){ const ta=$('trText'); const lines=ta.value.split('\n'); let off=0; for(let i=0;i<li&&i<lines.length;i++) off+=lines[i].length+1; const p=off+(lines[li]||'').length; ta.focus(); ta.setSelectionRange(p,p); const lh=parseFloat(getComputedStyle(ta).lineHeight)||20; ta.scrollTop=Math.max(0,(li-3)*lh); trSyncFromCaret(); }
+async function trTry(){
+  const r=trCheck(); if(!r) return;
+  trSave();
+  try{
+    if(ED.on) edLeave();
+    S.origText=r.xml; S.fromFile=true; S.octave=0; S.bpmTouched=false;
+    parseSource(r.xml); fillSelects(); setSwing(!!r.hdr.swing); S.pos=0; S.stepIdx=0;
+    trShow(false); $('trBack').hidden=false; await rebuild();
+    say('Anteprima della trascrizione: ascoltala e confrontala con lo spartito. «Torna alla trascrizione» per correggere.',8000);
+  }catch(e){ trShow(true); trMsg(trEsc(e.message||String(e)),'err'); }
+}
+function trDownload(){
+  const r=trCheck(); if(!r) return;
+  const slug=(r.hdr.title||'trascrizione').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'trascrizione';
+  const blob=new Blob([r.xml],{type:'application/vnd.recordare.musicxml+xml'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=slug+'.musicxml'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  say('Scaricato '+slug+'.musicxml',6000);
+}
+async function trImportXml(text){
+  try{
+    let doc;
+    if(text instanceof File){ const f=text; const s=/\.mxl$/i.test(f.name)?await unzipMxl(await f.arrayBuffer()):await f.text(); doc=new DOMParser().parseFromString(s,'application/xml'); }
+    else doc=text;
+    if(!doc||doc.querySelector('parsererror')||!doc.querySelector('score-partwise')) throw new Error('Il file non è un MusicXML valido.');
+    if($('trText').value.trim() && !confirm('Il testo attuale verrà sostituito dalla bozza. Continuare?')) return;
+    const r=trFromXml(doc); trSetHdr(r.hdr);
+    // mantiene le intestazioni di pagina/rigo se lo schema delle battute è già stato preparato
+    const lines=r.text.split('\n'); const out=[]; let last=null;
+    for(const l of lines){ const m=/^(\d+)/.exec(l); const b=m&&TR.bars[m[1]]; if(b){ const k=b.p+'/'+b.s; if(k!==last){ out.push(`# pagina ${b.p+1} · rigo ${b.s+1}`); last=k; } } out.push(l); }
+    $('trText').value=out.join('\n'); trSave(); trCheck();
+    if(r.warn.length) trMsg(r.warn.map(trEsc).join('<br>'),'warn');
+  }catch(e){ trMsg(trEsc(e.message||String(e)),'err'); }
+}
+function trShow(on){ $('trPanel').hidden=!on; document.body.classList.toggle('trOn',on); if(on){ $('trBack').hidden=true; if(TR.pages.length) trDrawPage(); trSyncFromCaret(); } }
+function trBind(){
+  const kSel=$('trKey'); const KN=['Do♭ / La♭m','Sol♭ / Mi♭m','Re♭ / Si♭m','La♭ / Fam','Mi♭ / Dom','Si♭ / Solm','Fa / Rem','Do / Lam','Sol / Mim','Re / Sim','La / Fa♯m','Mi / Do♯m','Si / Sol♯m','Fa♯ / Re♯m','Do♯ / La♯m'];
+  for(let f=-7;f<=7;f++){ const o=document.createElement('option'); o.value=f; o.textContent=`${KN[f+7]} (${f===0?'nessuna alterazione':Math.abs(f)+(f>0?' ♯':' ♭')})`; kSel.appendChild(o); } kSel.value='0';
+  const iSel=$('trInstr'); let og=null, gname=null;
+  INSTR.forEach(i=>{ if(i.g!==gname){ og=document.createElement('optgroup'); og.label=i.g; iSel.appendChild(og); gname=i.g; } const o=document.createElement('option'); o.value=i.id; o.textContent=i.n; og.appendChild(o); });
+  iSel.value=(INSTR.find(i=>i.id==='sax-t')||INSTR[0]).id;
+  $('trBtn').addEventListener('click',()=>trShow(true));
+  $('trClose').addEventListener('click',()=>{ trSave(); trShow(false); });
+  $('trBack').addEventListener('click',()=>trShow(true));
+  $('trFile').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; trOpenFile(f); });
+  $('trXml').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) trImportXml(f); });
+  $('trFromOpen').addEventListener('click',()=>{ if(!S.srcDoc){ trMsg('Nessun brano aperto.','err'); return; } trImportXml(S.srcDoc); });
+  $('trSkel').addEventListener('click',trSkeleton);
+  $('trTry').addEventListener('click',trTry);
+  $('trDl').addEventListener('click',trDownload);
+  $('trPrev').addEventListener('click',()=>{ if(TR.page>0){ TR.page--; trDrawPage(); } });
+  $('trNext').addEventListener('click',()=>{ if(TR.page<TR.pages.length-1){ TR.page++; trDrawPage(); } });
+  const ta=$('trText'); let tmr=null;
+  ta.addEventListener('input',()=>{ clearTimeout(tmr); tmr=setTimeout(()=>{ trSave(); trCheck(); },600); });
+  ['click','keyup'].forEach(ev=>ta.addEventListener(ev,trSyncFromCaret));
+  ['trTitle','trComp','trInstr','trKey','trTime','trUnit','trBpm','trWords','trSwing'].forEach(id=>$(id).addEventListener('change',()=>{ trSave(); trCheck(); }));
+  $('trMsg').addEventListener('click',e=>{ const a=e.target.closest('a[data-line]'); if(a){ e.preventDefault(); trGoLine(+a.dataset.line); } });
+  $('trPage').addEventListener('click',e=>{
+    const pg=TR.pages[TR.page]; if(!pg) return; const cv=e.currentTarget; const r=cv.getBoundingClientRect(); const y=(e.clientY-r.top)*cv.height/r.height;
+    const i=pg.staves.findIndex(s=>y>=s.top-s.sp*3&&y<=s.bot+s.sp*3); if(i<0) return;
+    TR.sel={page:TR.page,sys:i}; trDrawPage();
+    const bs=trBarsOf(TR.page,i); if(bs.length) trGoBar(bs[0].n); else trSyncFromCaret();
+  });
+  $('trStrip').addEventListener('click',e=>{
+    if(!TR.sel) return; const cv=e.currentTarget; const r=cv.getBoundingClientRect();
+    const x=(e.clientX-r.left)*cv.width/r.width+(TR.stripX0||0), y=(e.clientY-r.top)*cv.height/r.height+(TR.stripY0||0);
+    const bars=trBarsOf(TR.sel.page,TR.sel.sys); let b=bars.find(b=>x>=b.a&&x<=b.b);
+    if(!b&&bars.length) b=x<bars[0].a?bars[0]:bars[bars.length-1];
+    if(!b){ trMsg('Prepara prima le battute: il tocco sul rigo inserisce le note nella battuta corrispondente.','warn'); return; }
+    if(TR.tap==='bar'||e.altKey){ trGoBar(b.n); return; }
+    const pg=TR.pages[TR.sel.page], s=pg.staves[TR.sel.sys];
+    if(TR.tap==='rest'){ trAppend(b.n,'r:'+TR.dur); TR.dots.push({p:TR.sel.page,s:TR.sel.sys,x,y:s.top+s.sp*2,lab:'r'}); trDrawStrip(b.n); return; }
+    const p=trPitchAt(pg,s,x,y); const tok=p.step+p.oct+':'+TR.dur;
+    if(trAppend(b.n,tok)){ TR.dots.push({p:TR.sel.page,s:TR.sel.sys,x,y:p.y,lab:p.step+p.oct}); trDrawStrip(b.n); }
+  });
+  $('trTools').addEventListener('click',e=>{
+    const t=e.target.closest('button'); if(!t) return;
+    if(t.dataset.dur){ TR.dur=t.dataset.dur; }
+    if(t.dataset.tap){ TR.tap=t.dataset.tap; }
+    if(t.dataset.acc!==undefined){ trAcc(t.dataset.acc); return; }
+    if(t.dataset.act==='tie'){ trTie(); return; }
+    if(t.dataset.act==='undo'){ trUndo(); return; }
+    $('trTools').querySelectorAll('[data-dur]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dur===TR.dur)));
+    $('trTools').querySelectorAll('[data-tap]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tap===TR.tap)));
+  });
+  trRestore(); trCheck();
+}
+
 /* ---------- Avvio ---------- */
 (async function start(){
   try{ const v=localStorage.getItem('lettore.view'); if(['due','riga','intero'].includes(v)){ S.view=v; $('view').value=v; } const pl=parseInt(localStorage.getItem('lettore.perLine'),10); if([3,4,5,6].includes(pl)){ S.perLine=pl; $('perLine').value=String(pl); } }catch(_){}
-  bind();
+  bind(); trBind();
   if(typeof opensheetmusicdisplay==='undefined'){ say('Non riesco a caricare la libreria di notazione. Controlla la connessione e ricarica la pagina.',0); return; }
   try{ await libInit(); }
   catch(err){ $('picker').hidden=true; try{ await loadDefault(); say('Archivio non raggiungibile: mostro il brano di prova.',6000); }catch(e2){ say(e2.message||String(e2),9000); } }
-  window.__lettore={ED, edEnter, edOp, edExport, edCheck, edSer, S, get osmd(){return osmd;}, transposeFifths, transposeDoc, parseSource, rebuild, LIB, openPiece, openBook, setBpm, play, pauseAudio, seekTo, jumpBars};
+  window.__lettore={TR, trParse, trToXml, trFromXml, trDetect, trCheck, trOpenFile, trSkeleton, trShow, trImportXml,ED, edEnter, edOp, edExport, edCheck, edSer, S, get osmd(){return osmd;}, transposeFifths, transposeDoc, parseSource, rebuild, LIB, openPiece, openBook, setBpm, play, pauseAudio, seekTo, jumpBars};
 })();
 })();
 </script>
