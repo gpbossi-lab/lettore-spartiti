@@ -128,6 +128,23 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 .mixer .mx input{width:100%;min-width:0}
 .mixer .mx output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .mixer .mx.off{opacity:.45}
+.printgrp{display:inline-flex;gap:4px;align-items:center}
+.printgrp select{padding:6px 4px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+#printArea{display:none}
+#printWork{position:absolute;left:-20000px;top:0;width:794px}
+@page{size:A4 portrait;margin:10mm}
+@media print{
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+  .pp{page-break-after:always;break-after:page;display:flex;flex-direction:column;height:276mm;overflow:hidden}
+  .pp:last-child{page-break-after:auto;break-after:auto}
+  .pp .phead{font-family:var(--font-sans,sans-serif);color:#000;margin:0 0 2mm;border-bottom:.3mm solid #000;padding-bottom:1.5mm}
+  .pp .phead h1{font-size:15pt;margin:0}
+  .pp .phead p{font-size:9pt;margin:.5mm 0 0}
+  .pp .psvg{flex:1;min-height:0;display:flex;justify-content:center;align-items:flex-start}
+  .pp .psvg svg{width:auto;height:100%;max-width:100%}
+  .pp .pfoot{font-size:7.5pt;text-align:right;color:#444}
+}
 #transInfo{font-size:13px;color:var(--muted);margin:0;text-wrap:pretty}
 .pct{min-width:48px;font-size:13px;color:var(--muted)}
 #scoreWrap.due{display:flex;align-items:center}
@@ -177,6 +194,7 @@ body.editing #score{cursor:crosshair}
         <button class="btn sm" id="pNext" type="button" aria-label="Brano successivo" title="Brano successivo">›</button>
       </div>
       <button class="btn" id="sideBtn" type="button" aria-pressed="true" title="Mostra o nasconde la colonna dei comandi (tasto C)">☰ Comandi</button>
+      <span class="printgrp"><button class="btn" id="printBtn" type="button" title="Stampa il brano con la trasposizione impostata (o salvalo in PDF)">🖨 Stampa</button><select id="printMode" aria-label="Impaginazione di stampa" title="Impaginazione di stampa"><option value="1">1 pagina</option><option value="n">Più pagine</option></select></span>
       <button class="btn" id="editBtn" type="button" aria-pressed="false" title="Correggi note, altezze e durate su una copia di lavoro: l'originale non viene toccato">✎ Modifica</button>
       <label class="btn" for="fileInput">Apri un altro spartito…</label>
       <input id="fileInput" type="file" accept=".musicxml,.xml,.mxl" hidden>
@@ -586,6 +604,7 @@ async function rebuild(){
   const dd=ddI+sd, dc=dcI+S.semi;
   const doc=S.srcDoc.cloneNode(true);
   const info=transposeDoc(doc,dd,dc);
+  S.printDoc=doc.cloneNode(true);
   if(S.view!=='riga') applyLineBreaks(doc,S.perLine);
   const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/,'');
   const box=$('score'); box.innerHTML='';
@@ -1047,6 +1066,61 @@ async function onSoundChange(){
   const need=neededSounds().filter(id=>!soundReady(id)); if(need.length){ await prepareSounds(); }
 }
 
+
+/* ---------- Stampa: il brano con la trasposizione impostata, su A4 ---------- */
+const PRINT_MIN_ZOOM=.75;
+function printHeader(){
+  const title=($('pieceTitle').textContent||'Spartito').replace(/ — versione di lavoro/,'').trim();
+  const meta=($('pieceMeta').textContent||'').trim();
+  const nm=id=>id==='file'?'strumento del file':(byId(id)||{n:id}).n;
+  const parts=[];
+  parts.push('per '+nm(S.dstId)+(S.dstId!==S.srcId?' (originale: '+nm(S.srcId)+')':''));
+  if(S.octave) parts.push(S.octave>0?'un\'ottava sopra':'un\'ottava sotto');
+  if(S.semi) parts.push('trasposto '+INTERVALS[Math.abs(S.semi)]+(S.semi>0?' sopra':' sotto'));
+  if(S.bpm) parts.push('♩ = '+Math.round(S.bpm));
+  if(ED.on) parts.push('versione di lavoro');
+  return {title, sub:[meta,parts.join(' · ')].filter(Boolean).join(' — ')};
+}
+async function renderPrint(zoom){
+  const work=$('printWork'); work.innerHTML='';
+  const o=new opensheetmusicdisplay.OpenSheetMusicDisplay(work,{autoResize:false,backend:'svg',drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,
+    drawingParameters:'default',autoBeam:true,pageFormat:'A4_P',pageBackgroundColor:'#FFFFFF',newSystemFromXML:false});
+  const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(S.printDoc).replace(/^<\?xml[^>]*\?>\s*/,'');
+  await o.load(xml);
+  o.EngravingRules.PageTopMargin=4; o.EngravingRules.PageBottomMargin=3;
+  o.zoom=zoom; o.render();
+  return [...work.querySelectorAll('svg')];
+}
+async function doPrint(){
+  if(!S.printDoc||S.rebuilding) return;
+  if(S.playing) pauseAudio(true);
+  const mode=$('printMode').value; say('Preparo la stampa…',0);
+  let svgs=[], z=1;
+  try{
+    if(mode==='1'){
+      for(z=1;z>=PRINT_MIN_ZOOM-1e-9;z=Math.round((z-.05)*100)/100){ svgs=await renderPrint(z); if(svgs.length<=1) break; }
+      if(svgs.length>1){ z=PRINT_MIN_ZOOM; say(`Questo brano richiede ${svgs.length} pagine per restare leggibile.`,6000); await new Promise(r=>setTimeout(r,1200)); }
+    } else { svgs=await renderPrint(1); }
+  }catch(e){ say('Non riesco a preparare la stampa: '+(e.message||e),7000); return; }
+  const h=printHeader(); const area=$('printArea'); area.innerHTML='';
+  svgs.forEach((svg,i)=>{
+    const w=+svg.getAttribute('width')||parseFloat(svg.style.width)||794, hh=+svg.getAttribute('height')||parseFloat(svg.style.height)||1123;
+    if(!svg.getAttribute('viewBox')) svg.setAttribute('viewBox',`0 0 ${w} ${hh}`);
+    svg.removeAttribute('width'); svg.removeAttribute('height'); svg.style.width=''; svg.style.height='';
+    svg.setAttribute('preserveAspectRatio','xMidYMin meet');
+    const pg=document.createElement('div'); pg.className='pp';
+    if(i===0){ const hd=document.createElement('div'); hd.className='phead'; const t1=document.createElement('h1'); t1.textContent=h.title; const t2=document.createElement('p'); t2.textContent=h.sub; hd.append(t1,t2); pg.appendChild(hd); }
+    const box=document.createElement('div'); box.className='psvg'; box.appendChild(svg); pg.appendChild(box);
+    if(svgs.length>1){ const f=document.createElement('div'); f.className='pfoot'; f.textContent=`${h.title} — pagina ${i+1} di ${svgs.length}`; pg.appendChild(f); }
+    area.appendChild(pg);
+  });
+  $('printWork').innerHTML='';
+  if(mode==='1'&&svgs.length<=1) say('',1);
+  const clean=()=>{ area.innerHTML=''; window.removeEventListener('afterprint',clean); };
+  window.addEventListener('afterprint',clean);
+  setTimeout(()=>window.print(),50);
+}
+
 /* ---------- Click: beat principale = 1/denominatore (semiminima in 4/4, croma in 6/8) ---------- */
 /* stati dell'accento: 0 debole, 3 medio, 1 forte, 2 muto */
 function defaultAcc(num,den){
@@ -1273,6 +1347,9 @@ function bind(){
   $('swingR').addEventListener('change',e=>{ S.swingR=parseFloat(e.target.value); });
   $('countBtn').addEventListener('click',()=>{ S.countIn=!S.countIn; $('countBtn').setAttribute('aria-pressed',String(S.countIn)); });
   $('score').addEventListener('click',onScoreClick);
+  $('printBtn').addEventListener('click',doPrint);
+  try{ const pm=localStorage.getItem('lettore.printMode'); if(pm==='1'||pm==='n') $('printMode').value=pm; }catch(_){}
+  $('printMode').addEventListener('change',e=>{ try{ localStorage.setItem('lettore.printMode',e.target.value); }catch(_){} });
   $('editBtn').addEventListener('click',()=>{ edEnter(); $('side').scrollTop=0; if(document.body.classList.contains('sidehid')) $('sideBtn').click(); });
   $('editPanel').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; b.blur(); if(b.dataset.op) edOp(b.dataset.op); else if(b.id==='edCmp') edToggleOriginal(); else if(b.id==='edExport') edExport(); else if(b.id==='edDiscard') edDiscard(); else if(b.id==='edExit') edExit(); });
   $('edImport').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) edImport(f); e.target.value=''; });
@@ -1844,5 +1921,6 @@ async function loadDefault(){
 })();
 })();
 </script>
+<div id="printArea" aria-hidden="true"></div><div id="printWork" aria-hidden="true"></div>
 </body>
 </html>
