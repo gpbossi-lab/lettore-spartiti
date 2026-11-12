@@ -23,6 +23,14 @@
    "author": "Bob Mintzer",
    "instrument": "Sax tenore",
    "pieces_available": 14
+  },
+  {
+   "id": "dorsey15",
+   "title": "Jimmy Dorsey — 15 studi su ritmi sincopati",
+   "path": "dorsey15/",
+   "author": "Jimmy Dorsey",
+   "instrument": "Sax tenore",
+   "pieces_available": 15
   }
  ]
 }

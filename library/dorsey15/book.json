@@ -1,0 +1,126 @@
+{
+ "id": "dorsey15",
+ "title": "Jimmy Dorsey — 15 studi su ritmi sincopati",
+ "pieces": [
+  {
+   "n": 1,
+   "title": "Studio n. 1",
+   "label": "Studio 1 — ♩=120 · ¢ · Do",
+   "file": "dorsey01.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 2,
+   "title": "Studio n. 2",
+   "label": "Studio 2 — ♩=120 · ¢ · Sol",
+   "file": "dorsey02.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 3,
+   "title": "Studio n. 3",
+   "label": "Studio 3 — ♩=120 · ¢ · Re",
+   "file": "dorsey03.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 4,
+   "title": "Studio n. 4",
+   "label": "Studio 4 — ♩=120 · ¢ · Fa",
+   "file": "dorsey04.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 5,
+   "title": "Studio n. 5",
+   "label": "Studio 5 — ♩=120 · ¢ · Sol",
+   "file": "dorsey05.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 6,
+   "title": "Studio n. 6",
+   "label": "Studio 6 — ♩=120 · ¢ · La",
+   "file": "dorsey06.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 7,
+   "title": "Studio n. 7",
+   "label": "Studio 7 — ♩=120 · ¢ · Fa",
+   "file": "dorsey07.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 8,
+   "title": "Studio n. 8",
+   "label": "Studio 8 — ♩=120 · ¢ · Do",
+   "file": "dorsey08.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 9,
+   "title": "Studio n. 9",
+   "label": "Studio 9 — ♩=120 · ¢ · Sol",
+   "file": "dorsey09.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 10,
+   "title": "Studio n. 10",
+   "label": "Studio 10 — ♩=120 · ¢ · Re",
+   "file": "dorsey10.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 11,
+   "title": "Studio n. 11",
+   "label": "Studio 11 — ♩=120 · ¢ · Do",
+   "file": "dorsey11.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 12,
+   "title": "Studio n. 12",
+   "label": "Studio 12 — ♩=120 · ¢ · Si♭",
+   "file": "dorsey12.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 13,
+   "title": "Studio n. 13",
+   "label": "Studio 13 — ♩=120 · ¢ · Sol",
+   "file": "dorsey13.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 14,
+   "title": "Studio n. 14",
+   "label": "Studio 14 — ♩=120 · ¢ · La",
+   "file": "dorsey14.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  },
+  {
+   "n": 15,
+   "title": "Studio n. 15",
+   "label": "Studio 15 — ♩=120 · ¢ · Do",
+   "file": "dorsey15.xml",
+   "tempo": 120,
+   "meter": "2/2"
+  }
+ ]
+}
