@@ -238,7 +238,7 @@ body.editing #score{cursor:crosshair}
       </div>
       <div class="group">
         <label class="cap" for="melSound">Suono melodia</label>
-        <select id="melSound"><option value="sax">Sax tenore</option><option value="piano">Pianoforte</option><option value="synth">Sintetico</option></select>
+        <select id="melSound"><option value="piano">Pianoforte</option><option value="sax">Sax tenore</option><option value="synth">Sintetico</option></select>
       </div>
       <div class="group" id="accOpts" hidden>
         <label class="cap" for="accSound">Accordi</label>
@@ -382,7 +382,7 @@ const mod = (a,n) => ((a % n) + n) % n;
 /* ---------- Stato ---------- */
 const S = {
   srcDoc:null, srcT:{d:0,c:0}, fileInstr:null,
-  srcId:'c', dstId:'c', octave:0, semi:0, melSound:'sax', accSound:'piano', accRhythm:'hold', accBass:false, accVol:1, masterVol:1, chords:[], cevents:[], cePtr:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
+  srcId:'c', dstId:'c', octave:0, semi:0, melSound:'piano', accSound:'piano', accRhythm:'hold', accBass:false, accVol:1, masterVol:1, chords:[], cevents:[], cePtr:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
   geo:[], rows:[], rowOf:[], rowFirstM:[], winRow:0, loop:null, loopMode:0, loopA:null, countIn:false, swing:false, swingR:2, countUntil:0, loopEls:[],
   bpm:100, origBpm:100,
   steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
