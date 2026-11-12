@@ -10,29 +10,18 @@
 <style>
 /* Layout: schermata unica. Spartito grande al centro, pannello comandi in basso, strumenti e vista su una riga a parte. */
 :root{
-  --bg:#eef1f4;
-  --panel:#ffffff;
-  --ink:#16212c;
-  --muted:#5a6775;
-  --line:#d5dbe2;
-  --accent:#0b6e75;
-  --accent-ink:#ffffff;
+  --bg:#10161c;
+  --panel:#18212a;
+  --ink:#e7edf3;
+  --muted:#9aa8b6;
+  --line:#2b3743;
+  --accent:#47b5bd;
+  --accent-ink:#06282b;
   --hl:#e4571a;
   --played:#7d93a8;
   --paper:#ffffff;
   --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#10161c; --panel:#18212a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2b3743;
-    --accent:#47b5bd; --accent-ink:#06282b; --hl:#ff8a4d; --played:#7d93a8;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#10161c; --panel:#18212a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2b3743;
-  --accent:#47b5bd; --accent-ink:#06282b; --hl:#ff8a4d; --played:#7d93a8;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -134,6 +123,7 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 #printWork{position:absolute;left:-20000px;top:0;width:794px}
 @page{size:A4 portrait;margin:10mm}
 @media print{
+  html,body{background:#fff!important;color:#000!important}
   body>*:not(#printArea){display:none!important}
   #printArea{display:block!important}
   .pp{page-break-after:always;break-after:page;display:flex;flex-direction:column;height:276mm;overflow:hidden}
@@ -150,6 +140,7 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 #scoreWrap.due{display:flex;align-items:center}
 #scoreWrap.due #score{width:100%;height:auto;padding:0}
 .loopbox{position:absolute;background:rgba(228,87,26,.13);border-top:2px solid rgba(228,87,26,.55);border-bottom:2px solid rgba(228,87,26,.55);pointer-events:none;z-index:1}
+#score img[id^="cursorImg"]{filter:blur(3px)}
 #score{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #score img{pointer-events:none}
 .hint{margin:0;font-size:12.5px;color:var(--muted)}
@@ -612,7 +603,7 @@ async function rebuild(){
     osmd=new opensheetmusicdisplay.OpenSheetMusicDisplay(box,{
       autoResize:false, backend:'svg', drawTitle:false, drawSubtitle:false, drawComposer:false, drawPartNames:false,
       drawingParameters:'default', autoBeam:true, renderSingleHorizontalStaffline:S.view==='riga', newSystemFromXML:S.view!=='riga',
-      cursorsOptions:[{type:0,color:'#e4571a',alpha:.45,follow:false}]
+      cursorsOptions:[{type:0,color:'#e4571a',alpha:.2,follow:false}]
     });
     await osmd.load(xml);
     S.effZoom=S.zoom;
