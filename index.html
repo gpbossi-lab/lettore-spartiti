@@ -120,6 +120,9 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 .switch[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .switch[aria-pressed="true"] .dot{background:var(--hl)}
 .divider{height:1px;background:var(--line);margin:0}
+.semictl{display:flex;align-items:center;gap:6px}
+#semiVal{min-width:2.4em;text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.seminame{font-size:13px;color:var(--muted)}
 #transInfo{font-size:13px;color:var(--muted);margin:0;text-wrap:pretty}
 .pct{min-width:48px;font-size:13px;color:var(--muted)}
 #scoreWrap.due{display:flex;align-items:center}
@@ -261,6 +264,16 @@ body.editing #score{cursor:crosshair}
           <option value="1">Una più acuta</option>
         </select>
       </div>
+      <div class="group">
+        <span class="cap" id="semiCap">Trasposizione</span>
+        <div class="semictl" role="group" aria-labelledby="semiCap">
+          <button class="btn sm" id="semiDown" type="button" aria-label="Mezzo tono sotto" title="Mezzo tono sotto">−</button>
+          <output id="semiVal" aria-live="polite">0</output>
+          <button class="btn sm" id="semiUp" type="button" aria-label="Mezzo tono sopra" title="Mezzo tono sopra">+</button>
+          <button class="btn sm" id="semiReset" type="button" title="Nessuna trasposizione">0</button>
+        </div>
+        <span id="semiName" class="seminame"></span>
+      </div>
     </div>
     <p id="transInfo"></p></div></details>
   <details class="sec" id="secVista"><summary title="Vista" aria-label="Vista"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6.6" cy="14.4" r="4.2"/><circle cx="17.4" cy="14.4" r="4.2"/><path d="M10.8 13.6c.8-.9 1.6-.9 2.4 0"/><path d="M2.5 13.6 1.9 8.4"/><path d="M21.5 13.6 22.1 8.4"/></svg></summary><div class="secbody"><div class="row">
@@ -351,7 +364,7 @@ const mod = (a,n) => ((a % n) + n) % n;
 /* ---------- Stato ---------- */
 const S = {
   srcDoc:null, srcT:{d:0,c:0}, fileInstr:null,
-  srcId:'c', dstId:'c', octave:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
+  srcId:'c', dstId:'c', octave:0, semi:0, view:'due', perLine:4, zoom:1.3, effZoom:1.3,
   geo:[], rows:[], rowOf:[], rowFirstM:[], winRow:0, loop:null, loopMode:0, loopA:null, countIn:false, swing:false, swingR:2, countUntil:0, loopEls:[],
   bpm:100, origBpm:100,
   steps:[], events:[], clicks:[], measureFirst:[], measureNums:[], endPos:0,
@@ -378,6 +391,38 @@ function transposeFifths(f, dd, dc){
   }
   for(let k=0;k<=7;k++) for(const sg of [1,-1]){ const g=k*sg; if(mod(7*g,12)===nc) return g; }
   return f;
+}
+/* trasposizione libera a semitoni: scelgo la grafia (diesis o bemolli) che dà l'armatura più semplice */
+function fifthsExact(f,dd,dc){
+  const nd=mod(mod(4*f,7)+dd,7), nc=mod(mod(7*f,12)+dc,12);
+  for(let g=-7;g<=7;g++) if(mod(7*g,12)===nc && mod(4*g,7)===nd) return g;
+  return null;
+}
+function semiDiatonic(n, ddI, dcI){
+  if(!n) return 0;
+  const k=S.srcDoc?S.srcDoc.querySelector('key > fifths'):null;
+  const f0=k?parseInt(k.textContent,10)||0:0;
+  const base=Math.round(n*7/12); let best=base, bs=1e9;
+  for(const sd of [base-1,base,base+1]){
+    const g=fifthsExact(f0, ddI+sd, dcI+n); if(g===null) continue;
+    let s=Math.abs(g)*10; if(Math.abs(g)===6) s+=(n>0?(g<0?1:0):(g>0?1:0));
+    if(s<bs){ bs=s; best=sd; }
+  }
+  return best;
+}
+const INTERVALS=['unisono','seconda minore','seconda maggiore','terza minore','terza maggiore','quarta giusta','tritono','quinta giusta','sesta minore','sesta maggiore','settima minore','settima maggiore'];
+const MAJ=['Do♭','Sol♭','Re♭','La♭','Mi♭','Si♭','Fa','Do','Sol','Re','La','Mi','Si','Fa♯','Do♯'], MIN=['La♭','Mi♭','Si♭','Fa','Do','Sol','Re','La','Mi','Si','Fa♯','Do♯','Sol♯','Re♯','La♯'];
+function syncSemiUi(info){
+  $('semiVal').textContent=(S.semi>0?'+':'')+S.semi;
+  $('semiDown').disabled=S.semi<=-11||ED.on; $('semiUp').disabled=S.semi>=11||ED.on; $('semiReset').disabled=S.semi===0||ED.on;
+  let txt='';
+  if(S.semi){ txt=INTERVALS[Math.abs(S.semi)]+(S.semi>0?' sopra':' sotto'); if(info){ const f=info.after; txt+=' · '+MAJ[f+7]+' magg. / '+MIN[f+7]+' min.'; } }
+  $('semiName').textContent=txt;
+}
+async function setSemi(v){
+  if(S.rebuilding||ED.on||!S.srcDoc) return;
+  v=Math.max(-11,Math.min(11,v)); if(v===S.semi) return;
+  S.semi=v; await rebuild();
 }
 function transposeDoc(doc, dd, dc){
   const keys=[...doc.querySelectorAll('key > fifths')];
@@ -489,7 +534,7 @@ async function loadFile(file){
     if(/\.mxl$/i.test(file.name)) text=await unzipMxl(await file.arrayBuffer());
     else text=await file.text();
     if(ED.on) edLeave();
-    S.origText=text; S.fromFile=true;
+    S.origText=text; S.fromFile=true; S.semi=0;
     parseSource(text); fillSelects(); S.pos=0; S.stepIdx=0;
     await rebuild(); say('Caricato: '+file.name);
   }catch(err){ say(err.message||String(err), 8000); }
@@ -518,7 +563,9 @@ async function rebuild(){
   const wasPlaying=S.playing; let keepPos=S.pos;
   pauseAudio(false);
   const Ts=getT(S.srcId), Td=getT(S.dstId);
-  const dd=Ts.d-Td.d+7*S.octave, dc=Ts.c-Td.c+12*S.octave;
+  const ddI=Ts.d-Td.d+7*S.octave, dcI=Ts.c-Td.c+12*S.octave;
+  const sd=semiDiatonic(S.semi, ddI, dcI);
+  const dd=ddI+sd, dc=dcI+S.semi;
   const doc=S.srcDoc.cloneNode(true);
   const info=transposeDoc(doc,dd,dc);
   if(S.view!=='riga') applyLineBreaks(doc,S.perLine);
@@ -564,7 +611,9 @@ function describeTransposition(Ts,Td,dd,dc,info){
   if(dc!==0){ const oct=Math.trunc(Math.abs(dc)/12), rest=Math.abs(dc)%12;
     moto='altezze scritte '+(dc<0?'più gravi':'più acute')+' di '+(oct?oct+(oct===1?' ottava':' ottave')+(rest?' e ':''):'')+(rest?rest+(rest===1?' semitono':' semitoni'):''); }
   const same=info.before===info.after;
-  $('transInfo').textContent=`Scritto per ${a}, letto da chi suona ${b}: ${moto}. Armatura: ${keyText(info.before)}${same?' (invariata)':' → '+keyText(info.after)}. Il suono reale resta quello dello spartito originale.`;
+  const sem=S.semi?` Il brano è trasposto di ${Math.abs(S.semi)} ${Math.abs(S.semi)===1?'semitono':'semitoni'} ${S.semi>0?'sopra':'sotto'} (${INTERVALS[Math.abs(S.semi)]}): cambia anche il suono.`:' Il suono reale resta quello dello spartito originale.';
+  $('transInfo').textContent=`Scritto per ${a}, letto da chi suona ${b}: ${moto}. Armatura: ${keyText(info.before)}${same?' (invariata)':' → '+keyText(info.after)}.${sem}`;
+  syncSemiUi(info);
 }
 
 function buildTimeline(){
@@ -1018,6 +1067,9 @@ function bind(){
   $('srcInstr').addEventListener('change',e=>{ S.srcId=e.target.value; if(S.dstId==='file'&&!S.fileInstr) S.dstId=S.srcId; rebuild(); });
   $('dstInstr').addEventListener('change',e=>{ S.dstId=e.target.value; rebuild(); });
   $('octave').addEventListener('change',e=>{ S.octave=parseInt(e.target.value,10); rebuild(); });
+  $('semiDown').addEventListener('click',()=>setSemi(S.semi-1));
+  $('semiUp').addEventListener('click',()=>setSemi(S.semi+1));
+  $('semiReset').addEventListener('click',()=>setSemi(0));
   $('view').addEventListener('change',e=>{ S.view=e.target.value; try{localStorage.setItem('lettore.view',S.view);}catch(_){} rebuild(); });
   $('perLine').addEventListener('change',e=>{ S.perLine=parseInt(e.target.value,10); try{localStorage.setItem('lettore.perLine',String(S.perLine));}catch(_){} rebuild(); });
   $('loopBtn').addEventListener('click',toggleLoop);
@@ -1414,13 +1466,14 @@ function edUpdateUi(){
   $('editPanel').querySelectorAll('[data-op]').forEach(b=>{ if(b.dataset.op!=='undo'&&b.dataset.op!=='redo') b.disabled=ED.viewOrig||!ED.ok; });
   $('edNote').textContent=ED.key?'Salvo da solo nel browser. L\'originale non viene toccato.':'Brano aperto da file: non c\'è salvataggio automatico, esporta il risultato.';
 }
-function edLock(on){ ['srcInstr','dstInstr','octave'].forEach(id=>{ $(id).disabled=on; }); }
+function edLock(on){ ['srcInstr','dstInstr','octave'].forEach(id=>{ $(id).disabled=on; }); syncSemiUi(); }
 async function edEnter(){
   if(ED.on){ return edExit(); }
   if(!S.srcDoc||S.rebuilding) return;
   const lib=!S.fromFile&&LIB.book&&LIB.book.pieces;
   ED.key=lib?'lettore.rev.'+LIB.book.id+'.'+LIB.idx:null;
-  if(S.dstId!==S.srcId||S.octave!==0){ S.dstId=S.srcId; S.octave=0; fillSelects(); say('Per modificare mostro il brano come è scritto sullo spartito, senza trasposizione.',6000); }
+  ED.semiSaved=S.semi; ED.instrSaved={dst:S.dstId,oct:S.octave};
+  if(S.dstId!==S.srcId||S.octave!==0||S.semi!==0){ S.dstId=S.srcId; S.octave=0; S.semi=0; fillSelects(); say('Per modificare mostro il brano come è scritto sullo spartito, senza trasposizione. All\'uscita la ripristino.',6000); }
   let saved=null; try{ saved=ED.key?localStorage.getItem(ED.key):null; }catch(e){}
   if(saved){ S.srcDoc=edParse(saved); say('Ho riaperto la tua versione di lavoro. L\'originale non è stato toccato.',6000); }
   ED.on=true; ED.undo=[]; ED.redo=[]; ED.viewOrig=false; ED.workDoc=null; ED.discardArm=0;
@@ -1432,7 +1485,10 @@ async function edExit(){
   if(!ED.on) return;
   if(ED.viewOrig) await edToggleOriginal(true);
   edLeave(); const keep=S.pos;
-  parseSource(S.origText); fillSelects(); S.pos=keep; await rebuild(); fillPieces();
+  parseSource(S.origText);
+  if(ED.instrSaved){ if([...$('dstInstr').options].some(o=>o.value===ED.instrSaved.dst)||ED.instrSaved.dst!=='file') S.dstId=ED.instrSaved.dst; S.octave=ED.instrSaved.oct; }
+  S.semi=ED.semiSaved||0; ED.semiSaved=0; ED.instrSaved=null;
+  fillSelects(); S.pos=keep; await rebuild(); fillPieces();
 }
 function edLeave(){ ED.on=false; ED.viewOrig=false; edLock(false); document.body.classList.remove('editing'); $('editPanel').hidden=true; if(window.updRail) updRail(); $('editBtn').setAttribute('aria-pressed','false'); }
 async function edToggleOriginal(forceOff){
@@ -1527,7 +1583,7 @@ async function openPiece(i){
     const text=await r.text();
     if(ED.on) edLeave();
     S.origText=text; S.fromFile=false;
-    S.octave=0; S.bpmTouched=false;
+    S.octave=0; S.semi=0; S.bpmTouched=false;
     setSwing(!!p.swing);
     parseSource(text); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
     try{ localStorage.setItem('lettore.last',LIB.book.id+'/'+i); }catch(e){}
@@ -1548,7 +1604,7 @@ async function libInit(){
   await openBook(id,n);
 }
 async function loadDefault(){
-  S.octave=0; S.bpmTouched=false; S.origText=DEFAULT_XML; S.fromFile=true;
+  S.octave=0; S.semi=0; S.bpmTouched=false; S.origText=DEFAULT_XML; S.fromFile=true;
   parseSource(DEFAULT_XML); fillSelects(); S.pos=0; S.stepIdx=0; await rebuild();
 }
 
