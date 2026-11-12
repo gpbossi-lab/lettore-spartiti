@@ -1,0 +1,4 @@
+Campioni sonori: banco General MIDI "FluidR3_GM" di Frank Wen (licenza MIT / Creative Commons Attribution 3.0),
+nella conversione per il browser di Benjamin Gleitzman (github.com/gleitz/midi-js-soundfonts).
+Strumenti usati: tenor_sax (sax), acoustic_grand_piano (piano), electric_piano_1 (rhodes).
+Una nota ogni tre semitoni; le altezze intermedie si ottengono variando la velocità di riproduzione.
