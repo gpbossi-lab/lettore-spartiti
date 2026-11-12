@@ -238,7 +238,7 @@ body.editing #score{cursor:crosshair}
       </div>
       <div class="group">
         <label class="cap" for="melSound">Suono melodia</label>
-        <select id="melSound"><option value="piano">Pianoforte</option><option value="vcsl">Sax tenore (VCSL)</option><option value="sax">Sax tenore (GM)</option><option value="synth">Sintetico</option></select>
+        <select id="melSound"><option value="piano">Pianoforte</option><option value="sax">Sax tenore (GM)</option><option value="synth">Sintetico</option></select>
       </div>
       <div class="group" id="accOpts" hidden>
         <label class="cap" for="accSound">Accordi</label>
@@ -884,7 +884,6 @@ function releaseVoice(v, when){
 /* Per aggiungere un suono basta una voce nel catalogo e la cartella sounds/<id>/ con i file <midi>.mp3 (uno ogni tre semitoni). */
 const SOUND_CAT={
   sax:   {n:'Sax tenore (GM)', dir:'sounds/sax/',    lo:36, hi:84, step:3, gain:16, attack:.025, tau:.06, loop:[.9,2.9], uses:['mel']},
-  vcsl:  {n:'Sax tenore (VCSL)', dir:'sounds/vcsl/', lo:44, hi:88, step:2, gain:4.5, attack:.02, tau:.07, loop:[1.2,4.1], uses:['mel']},
   piano: {n:'Pianoforte', dir:'sounds/piano/',  lo:33, hi:96, step:3, gain:25, attack:.004, tau:.12, uses:['mel','acc']},
   rhodes:{n:'Rhodes',     dir:'sounds/rhodes/', lo:33, hi:84, step:3, gain:26, attack:.004, tau:.14, uses:['acc']}
 };
@@ -1255,7 +1254,7 @@ function bind(){
     el.addEventListener('input',()=>{ const v=+el.value; out.textContent=String(v); S[MIX[id]]=v/100; if(id==='masterVol'&&master&&ctx) master.gain.setTargetAtTime(S.masterVol,ctx.currentTime,.02);
       mixSaved[id]=v; try{ localStorage.setItem('lettore.mix',JSON.stringify(mixSaved)); }catch(_){} });
   }
-  { const sp=soundPrefs(); if(['sax','vcsl','piano','synth'].includes(sp.mel)) S.melSound=sp.mel; if(['off','piano','rhodes'].includes(sp.acc)) S.accSound=sp.acc;
+  { const sp=soundPrefs(); if(['sax','piano','synth'].includes(sp.mel)) S.melSound=sp.mel; if(['off','piano','rhodes'].includes(sp.acc)) S.accSound=sp.acc;
     if(['hold','comp','beat'].includes(sp.rh)) S.accRhythm=sp.rh; S.accBass=!!sp.bass; syncSoundUi(); }
   $('melSound').addEventListener('change',e=>{ S.melSound=e.target.value; onSoundChange(); });
   $('accSound').addEventListener('change',e=>{ S.accSound=e.target.value; if(S.accSound==='off') S.voices.filter(v=>v.ev.acc).forEach(v=>releaseVoice(v,ctx?ctx.currentTime:0)); onSoundChange(); });
