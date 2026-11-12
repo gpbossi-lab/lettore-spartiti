@@ -203,7 +203,7 @@ body.editing #score{cursor:crosshair}
         <button class="btn" data-op="rest" title="Nota ⇄ pausa (R)">Pausa ⇄ nota</button><button class="btn" data-op="ins" title="Duplica la nota dopo di sé (I o Invio)">Inserisci dopo</button><button class="btn" data-op="del" title="Toglie la nota dalla battuta (Canc)">Elimina</button></div>
       <div class="group"><span class="cap">Segni</span>
         <button class="btn sm t" data-op="stacc" title="Staccato (S)">•</button><button class="btn sm t" data-op="acc" title="Accento (A)">&gt;</button><button class="btn sm t" data-op="ten" title="Tenuto (T)">–</button><button class="btn sm t" data-op="marc" title="Marcato (M)">^</button><button class="btn sm t" data-op="ferm" title="Corona (F)">𝄐</button>
-        <button class="btn sm" data-op="slur" title="Lega questa nota alla successiva, o allunga la legatura (L)">⌒ Lega</button><button class="btn sm" data-op="unslur" title="Toglie la legatura che comprende questa nota (Maiusc+L)">Sciogli</button></div>
+        <button class="btn sm" data-op="slur" title="Lega questa nota alla successiva, o allunga la legatura (L)">⌒ Lega</button><button class="btn sm" data-op="tie" title="Legatura di valore: unisce questa nota alla successiva della stessa altezza, anche oltre la stanghetta (V)">~ Valore</button><button class="btn sm" data-op="unslur" title="Toglie le legature (di frase e di valore) che comprendono questa nota (Maiusc+L)">Sciogli</button></div>
       <div class="group"><button class="btn" id="edUndo" data-op="undo" title="Annulla (Ctrl+Z)">↶ Annulla</button><button class="btn" id="edRedo" data-op="redo" title="Ripeti (Ctrl+Y)">↷ Ripeti</button></div>
     </div>
     <div class="row">
@@ -1565,14 +1565,42 @@ function opSlur(sel){
   }
   ED.pendingSel={m:sel.m,k:sel.k};
 }
+function addTie(n,type){
+  const tie=mk('tie'); tie.setAttribute('type',type);
+  const ex=qa(n,'tie'), d=q1(n,'duration');
+  if(type==='start'&&ex.length) ex[ex.length-1].after(tie); else if(type==='stop'&&ex.length) ex[0].before(tie); else d.after(tie);
+  const nt=notationsOf(n,true); const td=mk('tied'); td.setAttribute('type',type);
+  const first=[...nt.children].find(c=>c.tagName==='tied');
+  if(type==='stop'&&first) nt.insertBefore(td,first); else if(first){ let last=first; while(last.nextElementSibling&&last.nextElementSibling.tagName==='tied') last=last.nextElementSibling; last.after(td); } else nt.insertBefore(td,nt.firstChild);
+}
+function opTie(sel){
+  const n=sel.notes.find(x=>!q1(x,'rest'));
+  const nx=ED.map[S.stepIdx+1]; const nn=nx&&nx.notes.find(x=>!q1(x,'rest'));
+  if(!n) return 'Seleziona una nota (non una pausa).';
+  if(!nn) return 'La nota successiva manca o è una pausa: la legatura di valore unisce due note.';
+  if(!sameP(n,nn)) return 'La legatura di valore unisce due note della stessa altezza: qui le note sono diverse. Per legarle in frase usa «⌒ Lega».';
+  if(hasTie(n,'start')) return 'Questa nota è già legata di valore alla successiva.';
+  /* una legatura di frase tra le stesse due note diventerebbe doppia: la tolgo */
+  const s1=slurEls(n).filter(s=>s.getAttribute('type')==='start'), s2=slurEls(nn).filter(s=>s.getAttribute('type')==='stop');
+  if(s1.length&&s2.length&&(s1[0].getAttribute('number')||'1')===(s2[0].getAttribute('number')||'1')){ s1[0].remove(); s2[0].remove(); }
+  addTie(n,'start'); addTie(nn,'stop');
+  ED.pendingSel={m:sel.m,k:sel.k};
+}
 function opUnslur(sel){
+  const tn=sel.notes.find(x=>hasTie(x,'start')||hasTie(x,'stop'));
+  if(tn){
+    const all=[...edPart().querySelectorAll('note')]; const i=all.indexOf(tn);
+    const rmTie=(x,type)=>{ qa(x,'tie').filter(e=>e.getAttribute('type')===type).forEach(e=>e.remove()); x.querySelectorAll(':scope > notations > tied[type="'+type+'"]').forEach(e=>e.remove()); dropEmptyNotations(x); };
+    if(hasTie(tn,'start')){ for(let j=i+1;j<Math.min(all.length,i+9);j++){ if(sameP(all[j],tn)&&hasTie(all[j],'stop')){ rmTie(all[j],'stop'); break; } } rmTie(tn,'start'); }
+    if(hasTie(tn,'stop')){ for(let j=i-1;j>=Math.max(0,i-9);j--){ if(sameP(all[j],tn)&&hasTie(all[j],'start')){ rmTie(all[j],'start'); break; } } rmTie(tn,'stop'); }
+  }
   const all=[...edPart().querySelectorAll('note')]; const targets=new Set(sel.notes);
   const spans=[]; const open={};
   all.forEach((n,i)=>{ slurEls(n).forEach(s=>{ const type=s.getAttribute('type'), num=s.getAttribute('number')||'1';
     if(type==='start') open[num]={a:i,sa:s}; else if(type==='stop'&&open[num]){ spans.push({a:open[num].a,b:i,sa:open[num].sa,sb:s}); delete open[num]; } }); });
   const idx=all.findIndex(n=>targets.has(n));
   const hit=spans.filter(sp=>sp.a<=idx&&idx<=sp.b);
-  if(!hit.length) return 'Su questa nota non c\'è nessuna legatura.';
+  if(!hit.length) return tn?undefined:'Su questa nota non c\'è nessuna legatura.';
   hit.forEach(sp=>{ [sp.sa,sp.sb].forEach(s=>{ const nt=s.parentNode; s.remove(); if(nt&&!nt.children.length) nt.remove(); }); });
 }
 
@@ -1582,7 +1610,7 @@ const OPS={
   d1:s=>opDur(s,'whole',0), d2:s=>opDur(s,'half',0), d4:s=>opDur(s,'quarter',0), d8:s=>opDur(s,'eighth',0), d16:s=>opDur(s,'16th',0), dot:s=>opDur(s,null),
   rest:opRest, del:opDelete, ins:opInsert,
   stacc:s=>opArt(s,'staccato',['staccatissimo']), acc:s=>opArt(s,'accent',['strong-accent']), ten:s=>opArt(s,'tenuto'), marc:s=>opArt(s,'strong-accent',['accent']),
-  ferm:opFermata, slur:opSlur, unslur:opUnslur
+  ferm:opFermata, slur:opSlur, tie:opTie, unslur:opUnslur
 };
 async function edOp(name){
   if(!ED.on||S.rebuilding) return;
@@ -1757,6 +1785,7 @@ function edKey(e){
     case 'm': case 'M': return go('marc');
     case 'f': case 'F': return go('ferm');
     case 'l': return go('slur'); case 'L': return go('unslur');
+    case 'v': case 'V': return go('tie');
   }
   return false;
 }
