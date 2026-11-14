@@ -40,7 +40,10 @@
    "label": "Studio 5 — ♩=120 · ¢ · Sol",
    "file": "dorsey05.xml",
    "tempo": 120,
-   "meter": "2/2"
+   "meter": "2/2",
+   "merged": [
+    "6989ae62"
+   ]
   },
   {
    "n": 6,
