@@ -1,0 +1,198 @@
+{
+ "id": "mule24",
+ "title": "Mule — 24 Études faciles (d'après Samie)",
+ "pieces": [
+  {
+   "n": 1,
+   "title": "Studio n. 1",
+   "label": "Studio 1 — Moderato ♩=76 · 4/4 · Do",
+   "file": "mule01.xml",
+   "tempo": 76,
+   "meter": "4/4"
+  },
+  {
+   "n": 2,
+   "title": "Studio n. 2",
+   "label": "Studio 2 — Allegro ♩=112 · 4/4 · Do",
+   "file": "mule02.xml",
+   "tempo": 112,
+   "meter": "4/4"
+  },
+  {
+   "n": 3,
+   "title": "Studio n. 3",
+   "label": "Studio 3 — Allegro ♩=120 · 3/4 · Do",
+   "file": "mule03.xml",
+   "tempo": 120,
+   "meter": "3/4"
+  },
+  {
+   "n": 4,
+   "title": "Studio n. 4",
+   "label": "Studio 4 — Allegretto ♩.=96 · 6/8 · Do",
+   "file": "mule04.xml",
+   "tempo": 96,
+   "meter": "6/8"
+  },
+  {
+   "n": 5,
+   "title": "Studio n. 5",
+   "label": "Studio 5 — Moderato ♩=88 · 3/4 · Sol",
+   "file": "mule05.xml",
+   "tempo": 88,
+   "meter": "3/4"
+  },
+  {
+   "n": 6,
+   "title": "Studio n. 6",
+   "label": "Studio 6 — Allegro moderato ♩.=108 · 6/8 · Sol",
+   "file": "mule06.xml",
+   "tempo": 108,
+   "meter": "6/8"
+  },
+  {
+   "n": 7,
+   "title": "Studio n. 7",
+   "label": "Studio 7 — Allegro moderato ♩=108 · 4/4 · Fa",
+   "file": "mule07.xml",
+   "tempo": 108,
+   "meter": "4/4"
+  },
+  {
+   "n": 8,
+   "title": "Studio n. 8",
+   "label": "Studio 8 — Allegro moderato ♩=108 · 2/4 · Fa",
+   "file": "mule08.xml",
+   "tempo": 108,
+   "meter": "2/4"
+  },
+  {
+   "n": 9,
+   "title": "Studio n. 9",
+   "label": "Studio 9 — Allegro ♩=100 · 2/4 · Sol",
+   "file": "mule09.xml",
+   "tempo": 100,
+   "meter": "2/4"
+  },
+  {
+   "n": 10,
+   "title": "Studio n. 10",
+   "label": "Studio 10 — Moderato ♩=88 · 3/4 · Re",
+   "file": "mule10.xml",
+   "tempo": 88,
+   "meter": "3/4"
+  },
+  {
+   "n": 11,
+   "title": "Studio n. 11",
+   "label": "Studio 11 — Adagio ♪=96 · 4/4 · Fa",
+   "file": "mule11.xml",
+   "tempo": 96,
+   "meter": "4/4"
+  },
+  {
+   "n": 12,
+   "title": "Studio n. 12",
+   "label": "Studio 12 — Allegro ♩=120 · 2/4 · Si♭",
+   "file": "mule12.xml",
+   "tempo": 120,
+   "meter": "2/4"
+  },
+  {
+   "n": 13,
+   "title": "Studio n. 13",
+   "label": "Studio 13 — Allegretto ♪=120 · 3/8 · Sol",
+   "file": "mule13.xml",
+   "tempo": 120,
+   "meter": "3/8"
+  },
+  {
+   "n": 14,
+   "title": "Studio n. 14",
+   "label": "Studio 14 — Moderato ♩=92 · 4/4 · Si♭",
+   "file": "mule14.xml",
+   "tempo": 92,
+   "meter": "4/4"
+  },
+  {
+   "n": 15,
+   "title": "Studio n. 15",
+   "label": "Studio 15 — Allegretto ♩.=112 · 6/8 · Do",
+   "file": "mule15.xml",
+   "tempo": 112,
+   "meter": "6/8"
+  },
+  {
+   "n": 16,
+   "title": "Studio n. 16",
+   "label": "Studio 16 — Allegro ♩=120 · 3/4 · Si♭",
+   "file": "mule16.xml",
+   "tempo": 120,
+   "meter": "3/4"
+  },
+  {
+   "n": 17,
+   "title": "Studio n. 17",
+   "label": "Studio 17 — Allegretto ♩=104 · 3/4 · Do",
+   "file": "mule17.xml",
+   "tempo": 104,
+   "meter": "3/4"
+  },
+  {
+   "n": 18,
+   "title": "Studio n. 18",
+   "label": "Studio 18 — Andante ♪=96 · 3/4 · Re",
+   "file": "mule18.xml",
+   "tempo": 96,
+   "meter": "3/4"
+  },
+  {
+   "n": 19,
+   "title": "Studio n. 19",
+   "label": "Studio 19 — Allegro ♩=132 · 3/4 · Sol",
+   "file": "mule19.xml",
+   "tempo": 132,
+   "meter": "3/4"
+  },
+  {
+   "n": 20,
+   "title": "Studio n. 20",
+   "label": "Studio 20 — Moderato ♩.=72 · 6/8 · Si♭",
+   "file": "mule20.xml",
+   "tempo": 72,
+   "meter": "6/8"
+  },
+  {
+   "n": 21,
+   "title": "Studio n. 21",
+   "label": "Studio 21 — Moderato ♩=80 · 4/4 · Re",
+   "file": "mule21.xml",
+   "tempo": 80,
+   "meter": "4/4"
+  },
+  {
+   "n": 22,
+   "title": "Studio n. 22",
+   "label": "Studio 22 — Allegretto ♩=108 · 3/4 · Fa",
+   "file": "mule22.xml",
+   "tempo": 108,
+   "meter": "3/4"
+  },
+  {
+   "n": 23,
+   "title": "Studio n. 23",
+   "label": "Studio 23 — Allegro ♩=120 · 3/4 · Mi♭",
+   "file": "mule23.xml",
+   "tempo": 120,
+   "meter": "3/4"
+  },
+  {
+   "n": 24,
+   "title": "Studio n. 24",
+   "label": "Studio 24 — Allegretto ♩.=82 · 6/8 · La",
+   "file": "mule24.xml",
+   "tempo": 82,
+   "meter": "6/8"
+  }
+ ]
+}

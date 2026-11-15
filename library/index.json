@@ -31,6 +31,14 @@
    "author": "Jimmy Dorsey",
    "instrument": "Sax tenore",
    "pieces_available": 15
+  },
+  {
+   "id": "mule24",
+   "title": "Mule — 24 Études faciles (d'après Samie)",
+   "path": "mule24/",
+   "author": "Marcel Mule",
+   "instrument": "Sax tenore",
+   "pieces_available": 24
   }
  ]
 }
