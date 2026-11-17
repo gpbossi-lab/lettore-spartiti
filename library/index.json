@@ -39,6 +39,14 @@
    "author": "Marcel Mule",
    "instrument": "Sax tenore",
    "pieces_available": 24
+  },
+  {
+   "id": "assoli",
+   "title": "Assoli trascritti",
+   "path": "assoli/",
+   "author": "vari",
+   "instrument": "Sax tenore",
+   "pieces_available": 1
   }
  ]
 }

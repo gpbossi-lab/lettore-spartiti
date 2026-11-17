@@ -1,0 +1,14 @@
+{
+ "id": "assoli",
+ "title": "Assoli trascritti",
+ "pieces": [
+  {
+   "n": 1,
+   "title": "The Chicken",
+   "label": "The Chicken — tema + assolo di Bob Mintzer · ♩=212 · 2/2",
+   "file": "chicken.xml",
+   "tempo": 212,
+   "meter": "2/2"
+  }
+ ]
+}
